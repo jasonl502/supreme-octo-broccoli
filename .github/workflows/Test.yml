@@ -32,11 +32,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         run: |echo "# supreme-octo-broccoli" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M hello-world
-git remote add origin https://github.com/jasonl502/supreme-octo-broccoli.git
-git push -u origin hello-world
+
           echo Add other actions to build,
           echo test, and deploy your project.
