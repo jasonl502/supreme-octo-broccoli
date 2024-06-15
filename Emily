@@ -1,0 +1,23 @@
+ <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Emily - Voice Assistant</title>
+    </head>
+    <body>
+        <h1>Hi, I'm Emily, your Voice Assistant</h1>
+        <button onclick="speakText()">Talk to Emily</button>
+
+        <script>
+            function speakText() {
+                const text = "Hello, I am Emily, your personal voice assistant. How can I help you today?";
+                const speech = new SpeechSynthesisUtterance(text);
+                speech.lang = 'en-US';
+                window.speechSynthesis.speak(speech);
+            }
+        </script>
+    </body>
+    </html>
+</body>
+</html>
