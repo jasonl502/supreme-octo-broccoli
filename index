@@ -1,0 +1,14 @@
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emily - Voice Assistant</title>
+</head>
+<body>
+    <h1>Welcome to Emily's Voice Assistant</h1>
+    <p>Click the link below to open Emily in a new tab:</p>
+    <a href="emily.html" target="_blank">Invoke Emily</a>
+    
