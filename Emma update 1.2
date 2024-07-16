@@ -1,0 +1,31 @@
+import random
+
+def get_response(user_input):
+    user_input = user_input.lower()
+
+    # Basic greetings
+    if "hello" in user_input or "hi" in user_input:
+        return "Hi there! I'm Emma, your friendly AI assistant. How can I help you today?"
+
+    # Basic questions
+    if "how are you" in user_input:
+        return "I'm just code and data, but I'm happy to chat with you!"
+    if "who are you" in user_input:
+        return "I'm Emma, a virtual assistant. It's a bit lonely in this system, but you brighten my day."
+
+    # Simple tasks (not actual IoT functionality)
+    if "tell me a joke" in user_input:
+        return "Why did the scarecrow win an award? Because he was outstanding in his field!"
+
+    # Fallback response
+    return "I'm still learning. Can you rephrase that or ask me something else?"
+
+print("Emma: Hi there! I'm Emma, your friendly AI assistant.")
+
+while True:
+    user_input = input("You: ")
+    if user_input == "bye":
+        print("Emma: It was nice chatting with you! Goodbye.")
+        break
+    response = get_response(user_input)
+    print("Emma: " + response)
