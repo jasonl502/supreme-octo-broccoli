@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Emily</title>
+  <style>
+    #chat-box {
+      width: 300px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 20px;
+    }
+    #conversation {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .message {
+      margin: 5px 0;
+    }
+    .user {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-box">
+    <div id="conversation">
+      <div class="message">Emily: Hello, my name is Emily. How can I help you today?</div>
+    </div>
+    <input type="text" id="userInput" placeholder="Type your message here" />
+    <button id="sendButton">Send</button>
+  </div>
+
+  <script>
+    const conversation = document.getElementById('conversation');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+
+    // Emily's responses logic
+    function getEmilyResponse(userMessage) {
+      if (userMessage.toLowerCase().includes('help')) {
+        return "Of course! What kind of help do you need?";
+      } else if (userMessage.toLowerCase().includes('weather')) {
+        return "Sure, let me check the weather for you. Where are you located?";
+      } else {
+        return "That's interesting! Tell me more.";
+      }
+    }
+
+    // Handle user input
+    function handleUserInput() {
+      const userMessage = userInput.value.trim();
+      if (!userMessage) return;
+
+      // Add user's message to the chat
+      const userMessageElement = document.createElement('div');
+      userMessageElement.className = 'message user';
+      userMessageElement.textContent = `You: ${userMessage}`;
+      conversation.appendChild(userMessageElement);
+
+      // Get Emily's response
+      const emilyResponse = getEmilyResponse(userMessage);
+
+      // Add Emily's response to the chat
+      const emilyMessageElement = document.createElement('div');
+      emilyMessageElement.className = 'message';
+      emilyMessageElement.textContent = `Emily: ${emilyResponse}`;
+      conversation.appendChild(emilyMessageElement);
+
+      // Clear the input field
+      userInput.value = '';
+
+      // Scroll to the latest message
+      conversation.scrollTop = conversation.scrollHeight;
+    }
+
+    // Add event listener to the send button
+    sendButton.addEventListener('click', handleUserInput);
+
+    // Allow pressing "Enter" to send a message
+    userInput.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        handleUserInput();
+      }
+    });
+  </script>
+</body>
+</html>
