@@ -1,0 +1,27 @@
+<div style="border: 1px solid #ccc; padding: 10px; border-radius: 5px; background-color: #f9f9f9; max-width: 300px;">
+  <h3 style="margin-top: 0;">Take Notes</h3>
+  <textarea id="noteBox" style="width: 100%; height: 100px;" placeholder="Write your notes here..."></textarea>
+  <button style="margin-top: 10px; width: 100%; cursor: pointer;" onclick="saveNote()">Save Note</button>
+  <p id="statusMessage" style="color: green; display: none; margin-top: 10px;">Note saved!</p>
+</div>
+
+<script>
+  // Load the saved note on page load
+  document.addEventListener("DOMContentLoaded", function () {
+    const savedNote = localStorage.getItem("gadgetNote");
+    if (savedNote) {
+      document.getElementById("noteBox").value = savedNote;
+    }
+  });
+
+  // Save the note to local storage
+  function saveNote() {
+    const noteContent = document.getElementById("noteBox").value;
+    localStorage.setItem("gadgetNote", noteContent);
+    const statusMessage = document.getElementById("statusMessage");
+    statusMessage.style.display = "block";
+    setTimeout(() => {
+      statusMessage.style.display = "none";
+    }, 2000);
+  }
+</script>
