@@ -1,0 +1,19 @@
+<div id="healthTip"></div>
+
+<script>
+const healthTips = [
+  "Remember to get up and stretch regularly.",
+  "Step outside for a breath of fresh air.",
+  "Turn on dark mode to reduce eye strain.",
+  "Remember to get a good night's sleep.",
+  "Stay hydrated by drinking plenty of water."
+];
+
+function displayHealthTip() {
+  const randomIndex = Math.floor(Math.random() * healthTips.length);
+  document.getElementById("healthTip").innerText = healthTips[randomIndex];
+}
+
+// Display a tip when the page loads
+displayHealthTip();
+</script>
