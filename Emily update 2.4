@@ -1,0 +1,62 @@
+<div id="emilyChat" style="font-family: sans-serif; max-width: 400px; margin: 20px auto;">
+  <div id="chatArea" style="border: 1px solid #ccc; padding: 10px; height: 250px; overflow-y: auto; background: #f9f9f9;">
+    <!-- Chat messages will appear here -->
+  </div>
+  <div style="margin-top: 10px;">
+    <input 
+      type="text" 
+      id="userInput" 
+      placeholder="Type your message here" 
+      style="width: 70%; padding: 5px;" />
+    <button id="sendButton" style="padding: 5px 10px;">Send</button>
+  </div>
+</div>
+
+<script>
+  // Global toggle to alternate response order.
+  let orderAscending = true;
+  
+  // Define the four responses (sequence positions 1-4).
+  const responses = [
+    "How can I help?",
+    "are you sure?",
+    "Let me take care of that.",
+    "I'm sorry, but I'm not sure what you mean."
+  ];
+
+  // Function to append a message to the chat area.
+  function appendMessage(sender, message) {
+    const chatArea = document.getElementById('chatArea');
+    const messageElem = document.createElement('div');
+    messageElem.innerHTML = '<strong>' + sender + ':</strong> ' + message;
+    messageElem.style.marginBottom = '8px';
+    chatArea.appendChild(messageElem);
+    // Scroll to the bottom of the chatArea.
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  // When the user clicks the send button.
+  document.getElementById('sendButton').addEventListener('click', function() {
+    const inputField = document.getElementById('userInput');
+    const userMessage = inputField.value.trim();
+    if (userMessage === "") return;  // Ignore empty input.
+
+    // Display the user's message.
+    appendMessage('You', userMessage);
+    inputField.value = "";
+
+    // Determine the order for this cycle:
+    // If orderAscending is true, use the defined order; otherwise, reverse it.
+    const sequence = orderAscending ? responses : responses.slice().reverse();
+
+    // Loop through each message in the sequence and display it with a delay.
+    sequence.forEach((msg, index) => {
+      setTimeout(() => {
+        appendMessage('Emily', msg);
+      }, 500 * (index + 1));
+    });
+
+    // Toggle the order for the next user input.
+    orderAscending = !orderAscending;
+  });
+</script>
