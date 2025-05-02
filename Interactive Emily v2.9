@@ -1,0 +1,45 @@
+<!-- Emily AI Assistant Gadget for Blogger -->
+<div id="emily-gadget" style="border:1px solid #ccc; padding:10px; max-width:100%; font-family:Arial, sans-serif;">
+  <p id="emily-message" style="margin:0 0 10px;">Hi. How can I help?</p>
+  <textarea id="emily-input" placeholder="Paste post URL or content here..." style="width:100%; height:80px; margin-bottom:10px;"></textarea>
+  <button id="emily-send" style="padding:5px 10px;">Send</button>
+  <p style="margin:10px 0 5px; font-weight:bold;">Example questions:</p>
+  <ul style="margin:0 0 10px 20px;">
+    <li>What is root access?</li>
+    <li>How to root my Android?</li>
+    <li>I've bricked it; how to fix?</li>
+  </ul>
+  <p id="emily-response" style="font-style:italic; color:#333;"></p>
+</div>
+<script>
+(function(){
+  var responses = [
+    "Sorry, I can't help with that.",
+    "What are you talking about exactly?",
+    "Oh, okay.",
+    "See you later."
+  ];
+  var input = document.getElementById('emily-input');
+  var sendBtn = document.getElementById('emily-send');
+  var responseEl = document.getElementById('emily-response');
+
+  sendBtn.addEventListener('click', function(){
+    var userInput = input.value.trim().toLowerCase();
+    if(!userInput){
+      responseEl.textContent = "Please enter a link or some content.";
+      return;
+    }
+    var reply;
+    if(userInput.includes('root access')){
+      reply = responses[0];
+    } else if(userInput.includes('root my android')){
+      reply = responses[1];
+    } else if(userInput.includes('bricked')){
+      reply = responses[2];
+    } else {
+      reply = responses[Math.floor(Math.random() * responses.length)];
+    }
+    responseEl.textContent = reply;
+  });
+})();
+</script>
