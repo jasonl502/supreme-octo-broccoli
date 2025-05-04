@@ -7,50 +7,63 @@
 <script>
 (function() {
   const msgContainer = document.getElementById('emily-messages');
-  const inputEl = document.getElementById('emily-input');
-  const sendBtn = document.getElementById('emily-send');
+  const inputEl      = document.getElementById('emily-input');
+  const sendBtn      = document.getElementById('emily-send');
 
-  // helper to append a message
+  // Append a chat bubble
   function showMessage(who, text) {
     const bubble = document.createElement('div');
-    bubble.textContent = (who === 'Emily' ? 'Emily: ' : 'You: ') + text;
+    bubble.textContent = (who==='Emily' ? 'Emily: ' : 'You: ') + text;
     bubble.style.margin = '4px 0';
-    bubble.style.fontStyle = who==='Emily'?'italic':'';
+    bubble.style.fontStyle = (who==='Emily' ? 'italic' : 'normal');
     msgContainer.appendChild(bubble);
     msgContainer.scrollTop = msgContainer.scrollHeight;
   }
 
-  // initial prompt
+  // Start the conversation
   showMessage('Emily', 'How can I help?');
 
   sendBtn.addEventListener('click', handleInput);
-  inputEl.addEventListener('keypress', e => { if (e.key === 'Enter') handleInput(); });
+  inputEl.addEventListener('keydown', e => { if (e.key==='Enter') handleInput(); });
 
   function handleInput() {
     const text = inputEl.value.trim();
     if (!text) return;
     showMessage('You', text);
     inputEl.value = '';
-
     const lc = text.toLowerCase();
+
+    // Link-needed keywords
+    const linkNeeded = ['root','how','android','?'].some(k => lc.includes(k));
+    if (linkNeeded) {
+      showMessage('Emily', "Can you share the link to the post you're referring to?");
+      return;
+    }
+
+    // Priority keywords
     const highPriority = ['please','yes','thanks','ok'].some(k => lc.includes(k));
     const lowPriority  = ['shit','idiot','you'].some(k => lc.includes(k));
-    const highRelevance= ['please','thank you'].some(k => lc.includes(k));
-    const lowRelevance = ['shit','idiot','you','lol','why'].some(k => lc.includes(k));
 
-    // decide "high" if either priority or relevance is high
+    // Relevance keywords
+    const highRelevance = ['please','thank you'].some(k => lc.includes(k));
+    const lowRelevance  = ['shit','idiot','you','lol','why'].some(k => lc.includes(k));
+
+    // Overall “high” if either priority or relevance is high
     const isHigh = highPriority || highRelevance;
+
+    // If not high importance/relevance
     if (!isHigh) {
       showMessage('Emily', "Sorry, I can't help with that.");
       return;
     }
 
-    // simulate thinking steps
+    // Simulate thinking sequence
     showMessage('Emily', 'Thinking...');
-    setTimeout(()=> showMessage('Emily', 'considering importance of user input'), 600);
-    setTimeout(()=> showMessage('Emily', 'considering relevance of user input'), 1200);
-    setTimeout(()=> showMessage('Emily', 'thinking ...'), 1800);
-    setTimeout(()=> showMessage('Emily', 'Interesting.'), 2400);
+    setTimeout(() => showMessage('Emily', 'considering importance of user input'), 600);
+    setTimeout(() => showMessage('Emily', 'considering relevance of user input'), 1200);
+    setTimeout(() => showMessage('Emily', 'thinking ...'), 1800);
+    setTimeout(() => showMessage('Emily', 'Interesting.'), 2400);
   }
 })();
 </script>
+
