@@ -1,0 +1,56 @@
+<div id="emily-assistant" style="max-width:400px;border:1px solid #ccc;padding:10px;border-radius:6px;font-family:sans-serif;">
+  <div id="emily-messages" style="height:200px;overflow-y:auto;margin-bottom:8px;"></div>
+  <input id="emily-input" type="text" placeholder="Type your message..." style="width:calc(100% - 60px);padding:6px;"/>
+  <button id="emily-send" style="width:50px;padding:6px;">Send</button>
+</div>
+
+<script>
+(function() {
+  const msgContainer = document.getElementById('emily-messages');
+  const inputEl = document.getElementById('emily-input');
+  const sendBtn = document.getElementById('emily-send');
+
+  // helper to append a message
+  function showMessage(who, text) {
+    const bubble = document.createElement('div');
+    bubble.textContent = (who === 'Emily' ? 'Emily: ' : 'You: ') + text;
+    bubble.style.margin = '4px 0';
+    bubble.style.fontStyle = who==='Emily'?'italic':'';
+    msgContainer.appendChild(bubble);
+    msgContainer.scrollTop = msgContainer.scrollHeight;
+  }
+
+  // initial prompt
+  showMessage('Emily', 'How can I help?');
+
+  sendBtn.addEventListener('click', handleInput);
+  inputEl.addEventListener('keypress', e => { if (e.key === 'Enter') handleInput(); });
+
+  function handleInput() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    showMessage('You', text);
+    inputEl.value = '';
+
+    const lc = text.toLowerCase();
+    const highPriority = ['please','yes','thanks','ok'].some(k => lc.includes(k));
+    const lowPriority  = ['shit','idiot','you'].some(k => lc.includes(k));
+    const highRelevance= ['please','thank you'].some(k => lc.includes(k));
+    const lowRelevance = ['shit','idiot','you','lol','why'].some(k => lc.includes(k));
+
+    // decide "high" if either priority or relevance is high
+    const isHigh = highPriority || highRelevance;
+    if (!isHigh) {
+      showMessage('Emily', "Sorry, I can't help with that.");
+      return;
+    }
+
+    // simulate thinking steps
+    showMessage('Emily', 'Thinking...');
+    setTimeout(()=> showMessage('Emily', 'considering importance of user input'), 600);
+    setTimeout(()=> showMessage('Emily', 'considering relevance of user input'), 1200);
+    setTimeout(()=> showMessage('Emily', 'thinking ...'), 1800);
+    setTimeout(()=> showMessage('Emily', 'Interesting.'), 2400);
+  }
+})();
+</script>
