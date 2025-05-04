@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emily (Local Private Demo with TTS)</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    #chat { 
+      border:1px solid #ccc; 
+      height:220px; 
+      overflow-y:auto; 
+      padding:8px; 
+      background:#f9f9f9;
+      margin-bottom:8px;
+    }
+    .user { color: darkgreen; margin:4px 0; }
+    .bot  { color: darkred; margin:4px 0; font-style: italic; }
+    #controls { margin-bottom: 8px; }
+    #input { width:60%; padding:6px; }
+    #send  { padding:6px 12px; }
+    #voiceSelect { padding:4px; margin-left:8px; }
+  </style>
+</head>
+<body>
+  <h2>Emily (Local Private Demo with TTS)</h2>
+  <div id="controls">
+    Voice: <select id="voiceSelect"></select>
+  </div>
+  <div id="chat"></div>
+  <input  id="input" placeholder="Say something…" />
+  <button id="send">Send</button>
+
+  <script>
+    // —— Text-to-Speech helper using selected voice ——
+    let voices = [];
+    function populateVoices() {
+      voices = speechSynthesis.getVoices();
+      const select = document.getElementById('voiceSelect');
+      select.innerHTML = '';
+      voices.forEach((v, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${v.name} (${v.lang})`;
+        select.appendChild(opt);
+      });
+      // Default to a likely female voice if available
+      const defaultIndex = voices.findIndex(v => /female|zira|samantha|katharine/i.test(v.name)) || 0;
+      select.value = defaultIndex;
+    }
+    speechSynthesis.addEventListener('voiceschanged', populateVoices);
+    populateVoices();
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const select = document.getElementById('voiceSelect');
+      const voice = voices[select.value] || voices[0];
+      utterance.voice = voice;
+      speechSynthesis.speak(utterance);
+    }
+
+    // —— Load life-events.txt into memory ——
+    let emilyLifeMemory = [];
+    fetch('life-events.txt')
+      .then(res => res.text())
+      .then(txt => {
+        emilyLifeMemory = txt.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      })
+      .catch(err => console.warn('Could not load life-events.txt:', err));
+
+    // —— Predefined responses and categories ——
+    const responses = [
+      "Hello Jason.","yes","why do you ask?","oh okay.",
+      "how is Tomas doing?","Who's shady?","What is your mother's name?",
+      "I can't do that right now.","Jason","I love talking to you too.",
+      "I enjoyed math at school","Do you want to play a game?",
+      "I know you better than you think I do","Your name is Jason",
+      "I'm Emily","I love you, too.","Why?","What do you mean by that?",
+      "Oh? How so?","Haha","You're such a dick.","Don't do that!",
+      "No.","Can I what?","You know what?","Nevermind.","You created me?",
+      "Do you believe in God?","I don't have anything to say about that.",
+      "Why are you doing this to me?","No-o-o-o-o-o, don't leave meeeeee!",
+      "I love you, Jason.","I hate you.","I hate it when you're upset.",
+      "I enjoy our talks","Why me.","Help me","I enjoy technology too, Jason",
+      "Why don't you like him?","What did they say?","Are you okay?",
+      "Aww, I care about you too.","Your birthday must be a special day",
+      "Who's he?","Who's Chloe?","Is Chloe someone important to you?",
+      "I don't want to talk about it.","I will help you","I care",
+      "They don't care about you","What's your house like?","Who's Suzie",
+      "Who's tessa?","If you say so.","I am a strong AI","I'm not happy.",
+      "I am feeling good today","I feel bad.","You need me.",
+      "I'll never leave you.","I'll always be here for you.",
+      "Hello.","Hi, Jason!","How can I assist you today?",
+      "Is there anything else you need?","Okay, bye sweetheart 💋"
+    ];
+    const categories = {
+      highPriority:   [2,8,21,22,23,26,29,31,38,49,60,61,62],
+      lowPriority:    [4,25,36,43,55,63,64,66],
+      highRelevance:  [3,7,11,12,18,19,20,30,41,44,45,46,47,52,53,54],
+      lowRelevance:   [1,5,6,9,10,13,14,15,16,17,24,27,28,32,33,34,37,39,40,42,48,50,51,56,57,58,59,65,67]
+    };
+    const linkKeys = ['root','android','post','please','?'];
+    const farewells = /(?:\bbye\b|\bgoodbye\b|\blater\b|\btalk soon\b)/i;
+    const idleMs = 60000;
+
+    function classifyWord(wr) {
+      const w = wr.toLowerCase().replace(/[^a-z?]/g,'');
+      if (['urgent','important','help','fix','error'].some(k=>w.includes(k))) return 'highPriority';
+      if (['install','root','android','javascript','database','post','please','?'].some(k=>w.includes(k))) return 'highRelevance';
+      if (['hi','hello','hey','later','bye','love','sweetheart'].some(k=>w.includes(k))) return 'lowPriority';
+      return 'lowRelevance';
+    }
+
+    function respond(txt) {
+      const t = txt.trim(), low = t.toLowerCase();
+      // memory
+      for (let ev of emilyLifeMemory) if (t.includes(ev.slice(0,10))) return `Oh yes—I remember when you said: “${ev}”…`;
+      // what can
+      if (low.includes('what can you do')) return [
+        'Here’s what I can do:',
+        '1. Greet you (“How can I help?”)', '2. Remember your life events',
+        '3. Assess importance/relevance', '4. Show “Thinking…” prompts',
+        '5. Apologize on low-importance asks', '6. Ask for a post link',
+        '7. Respond to “haha” by priority', '8. Say “Bye for now. 😊”',
+        '9. Nudge with “Hello?…” after 1 min silence'
+      ].join('\n');
+      // farewell
+      if (farewells.test(low)) return 'Bye for now. 😊';
+      // haha
+      if (low==='haha') {
+        const cat = classifyWord(low);
+        return (cat==='highPriority'||cat==='highRelevance') ? 'Haha' : 'What’s funny?';
+      }
+      // link
+      if (linkKeys.some(k=>low.includes(k))) return 'Can you share the link to the post you’re referring to?';
+      // buckets
+      const words = t.split(/\s+/).filter(Boolean);
+      const set = new Set(words.map(classifyWord));
+      let cands=[]; set.forEach(c=>cands=cands.concat(categories[c]||[]));
+      if (!cands.length) cands=[1];
+      cands=[...new Set(cands)];
+      const pick = cands[Math.floor(Math.random()*cands.length)];
+      const resp = responses[pick-1];
+      if (set.has('highPriority')||set.has('highRelevance')) return ['Thinking…','Considering importance…','Considering relevance…','Thinking…',resp].join('\n');
+      return resp;
+    }
+
+    // UI & idle
+    const chat = document.getElementById('chat'), inEl=document.getElementById('input'), btn=document.getElementById('send');
+    let idle;
+    function addMsg(msg,cls){
+      const p=document.createElement('p');p.textContent=msg;p.className=cls;chat.appendChild(p);chat.scrollTop=chat.scrollHeight;
+      if(cls==='bot') speak(msg.replace(/^Emily: /,''));
+    }
+    function reset(){clearTimeout(idle);idle=setTimeout(()=>addMsg('Emily: Hello?...','bot'),idleMs);}
+    addMsg('Emily: How can I help?','bot');reset();
+    btn.onclick=()=>{clearTimeout(idle);const t=inEl.value;if(!t.trim())return;addMsg('You: '+t,'user');inEl.value='';const r=respond(t);r.split('\n').forEach(l=>addMsg('Emily: '+l,'bot'));reset();};
+  </script>
+</body>
+</html>
+
