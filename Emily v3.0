@@ -12,10 +12,11 @@
   }
 
   // Keyword sets
-  const highPriorityKeywords  = ['urgent','important','help','fix','error'];
-  const highRelevanceKeywords = ['install','root','android','javascript','database'];
-  const linkRequestKeywords   = ['root','android','post','please','?'];
-  
+  const highPriorityKeywords   = ['urgent','important','help','fix','error'];
+  const highRelevanceKeywords  = ['install','root','android','javascript','database'];
+  const linkRequestKeywords    = ['root','android','post','please','?'];
+  const farewellKeywords       = ['bye','goodbye','talk soon','later'];
+
   // Capabilities list
   const capabilities = [
     'Greet you (“How can I help?”)',
@@ -25,7 +26,8 @@
     'Remember past inputs in localStorage',
     'Ask for a post link when you mention “root,” “android,” “post,” “please,” or “?”',
     'Prompt “Hello?…” if you go silent over 1 minute',
-    'List my capabilities when you ask “what can you do”'
+    'List my capabilities when you ask “what can you do”',
+    'Say “Bye for now. 😊” when you say “bye”, “goodbye”, “talk soon”, or “later”'
   ];
 
   // Determine importance (1–4)
@@ -50,7 +52,7 @@
 
   // Build Emily's response
   function generateResponse(input){
-    const text = input.trim();
+    const text  = input.trim();
     const lower = text.toLowerCase();
 
     // Remember input
@@ -58,23 +60,28 @@
     memory.push({ input: text, importance: imp, time: new Date().toISOString() });
     saveMemory();
 
-    // “What can you do?”
+    // 1) Farewell check
+    if (farewellKeywords.some(w => lower.includes(w))) {
+      return 'Emily: Bye for now. 😊';
+    }
+
+    // 2) “What can you do?”
     if (lower.includes('what can you do')) {
       return 'Emily: Here’s what I can do:\n' +
              capabilities.map((c,i)=>`${i+1}. ${c}`).join('\n');
     }
 
-    // High-importance link request
+    // 3) High-importance link request
     if (linkRequestKeywords.some(w => lower.includes(w))) {
       return 'Emily: Can you share the link to the post you’re referring to?';
     }
 
-    // Low-importance fallback
+    // 4) Low-importance fallback
     if (imp === 4) {
       return "Emily: Sorry, I can't help with that.";
     }
 
-    // Thinking prompts for importance 1–3
+    // 5) Thinking prompts for importance 1–3
     const steps = [
       'Emily: Thinking...',
       'Emily: Considering importance of your input...',
