@@ -1,0 +1,171 @@
+import os
+import zipfile
+
+# Directories setup
+project_dir = '/mnt/data/emily-electron-full'
+os.makedirs(project_dir, exist_ok=True)
+
+# Read original script3 content from the uploaded index.html
+with open('/mnt/data/index.html', 'r', encoding='utf-8') as f:
+    original = f.read()
+
+# Extract the inline script (script3) content
+start = original.find('<script>')
+end = original.find('</script>', start)
+script3_content = original[start + len('<script>'): end].strip()
+
+# Build new index.html content
+index_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emily (Electron + File Access)</title>
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+  <style>
+    body {{ font-family: sans-serif; padding: 1rem; }}
+    #fileAccess {{ margin-bottom: 1rem; }}
+    #fileList {{ list-style: none; padding: 0; }}
+    #fileList li {{ cursor: pointer; margin: 4px 0; }}
+    #chat {{ border:1px solid #ccc; height:220px; overflow-y:auto; padding:8px; background:#f9f9f9; margin-bottom:8px; }}
+    .user {{ color: darkgreen; margin:4px 0; }}
+    .bot  {{ color: darkred; margin:4px 0; font-style: italic; }}
+    #controls, #vision {{ margin-bottom: 8px; }}
+    #input {{ width:60%; padding:6px; }}
+    #send  {{ padding:6px 12px; }}
+    #voiceSelect {{ padding:4px; margin-left:8px; }}
+    #preview {{ max-width: 100%; margin-top: 10px; }}
+  </style>
+</head>
+<body>
+  <h2>Emily (Electron + File Access)</h2>
+  <div id="fileAccess">
+    <button id="selectDir">Select Directory</button>
+    <span id="dirPath"></span>
+    <ul id="fileList"></ul>
+  </div>
+  <div id="controls">
+    Voice: <select id="voiceSelect"></select>
+  </div>
+  <div id="chat"></div>
+  <input id="input" placeholder="Say something…" />
+  <button id="send">Send</button>
+  <h3>Image Recognition</h3>
+  <div id="vision">
+    <input type="file" id="imageUpload" accept="image/*" />
+    <img id="preview" />
+  </div>
+
+  <script>
+    // --- File Access Logic ---
+    const selectDirBtn = document.getElementById('selectDir');
+    const dirPathSpan = document.getElementById('dirPath');
+    const fileListEl = document.getElementById('fileList');
+    let currentDir = '';
+    selectDirBtn.addEventListener('click', async () => {{
+      const dir = await window.api.selectDirectory();
+      if (dir) {{
+        currentDir = dir;
+        dirPathSpan.textContent = dir;
+        const files = await window.api.readDir(dir);
+        fileListEl.innerHTML = '';
+        files.forEach(file => {{
+          const li = document.createElement('li');
+          li.textContent = file;
+          li.addEventListener('click', async () => {{
+            const filePath = `${{currentDir}}/${{file}}`;
+            if (file.toLowerCase().endsWith('.txt')) {{
+              const content = await window.api.readFile(filePath);
+              addMsg(`File ${{file}}: ${{content}}`, 'bot');
+            }} else if (file.toLowerCase().match(/\\.(png|jpe?g|gif)$/)) {{
+              addMsg(`Displaying image ${{file}}`, 'bot');
+              document.getElementById('preview').src = await window.api.getImagePath(filePath);
+            }}
+          }});
+          fileListEl.appendChild(li);
+        }});
+      }}
+    }});
+
+    // --- Emily Core Logic ---
+{script3_content}
+
+  </script>
+</body>
+</html>
+"""
+
+# Other files
+package_json = """{
+  "name": "emily-electron-full",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^25.0.0",
+    "@tensorflow/tfjs": "latest",
+    "@tensorflow-models/mobilenet": "latest"
+  }
+}
+"""
+main_js = """const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  win.loadFile('index.html');
+}
+
+app.whenReady().then(createWindow);
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+ipcMain.handle('select-directory', async () => {
+  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
+ipcMain.handle('read-dir', (event, dirPath) => fs.readdirSync(dirPath));
+ipcMain.handle('read-file', (event, filePath) => fs.readFileSync(filePath, 'utf-8'));
+ipcMain.handle('get-image-path', (event, filePath) => filePath);
+"""
+preload_js = """const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('api', {
+  selectDirectory: () => ipcRenderer.invoke('select-directory'),
+  readDir: (dir) => ipcRenderer.invoke('read-dir', dir),
+  readFile: (file) => ipcRenderer.invoke('read-file', file),
+  getImagePath: (file) => ipcRenderer.invoke('get-image-path', file)
+});
+"""
+
+# Write files
+files = {
+    'package.json': package_json,
+    'main.js': main_js,
+    'preload.js': preload_js,
+    'index.html': index_html
+}
+for name, content in files.items():
+    with open(os.path.join(project_dir, name), 'w', encoding='utf-8') as f:
+        f.write(content)
+
+# Create zip
+zip_path = '/mnt/data/emily-electron-app-full.zip'
+with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, filenames in os.walk(project_dir):
+        for filename in filenames:
+            filepath = os.path.join(root, filename)
+            z.write(filepath, os.path.relpath(filepath, project_dir))
+
+zip_path
