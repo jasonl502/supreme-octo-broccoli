@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emily Always Listening Template</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+    #consentModal, #errorMsg { background: white; border: 1px solid #ccc; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+    #waveform { width: 600px; height: 100px; background: #222; border-radius: 4px; margin-top: 1rem; }
+    #controls { margin-top: 1rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; border-radius: 4px; border: none; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: default; }
+    #errorMsg { display: none; color: #a00; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <!-- Consent Modal -->
+  <div id="consentModal">
+    <h2>Continuous Listening</h2>
+    <p>Emily would like your permission to listen continuously in the background.</p>
+    <div id="controls">
+      <button id="acceptBtn">Allow</button>
+      <button id="declineBtn">Decline</button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div id="errorMsg">
+    <h2>Microphone Access Required</h2>
+    <p>Unable to access the microphone. Please ensure you are on a secure origin (HTTPS) and have granted microphone permissions in your browser or environment.</p>
+  </div>
+
+  <!-- Waveform Indicator -->
+  <canvas id="waveform" hidden></canvas>
+
+  <script>
+    // Get references to UI elements
+    const consentModal = document.getElementById('consentModal');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const declineBtn = document.getElementById('declineBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const waveformCanvas = document.getElementById('waveform');
+    const canvasCtx = waveformCanvas.getContext('2d');
+
+    // Audio context and analyzer setup
+    let audioCtx;
+    let analyser;
+    let dataArray;
+    let animationId;
+
+    // User clicks "Allow" or "Decline"
+    acceptBtn.addEventListener('click', () => {
+      consentModal.hidden = true;
+      startListening();
+    });
+    declineBtn.addEventListener('click', () => {
+      consentModal.innerHTML = '<p>Emily will not listen continuously.</p>';
+    });
+
+    // Start audio capture and analysis
+    async function startListening() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.fftSize;
+        dataArray = new Uint8Array(bufferLength);
+
+        source.connect(analyser);
+
+        // Show waveform canvas
+        waveformCanvas.hidden = false;
+        drawWaveform();
+      } catch (err) {
+        console.error('Error accessing microphone:', err);
+        showError();
+      }
+    }
+
+    // Display error message to user
+    function showError() {
+      consentModal.hidden = true;
+      errorMsg.style.display = 'block';
+    }
+
+    // Draw waveform indicator
+    function drawWaveform() {
+      animationId = requestAnimationFrame(drawWaveform);
+      analyser.getByteTimeDomainData(dataArray);
+
+      canvasCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+      canvasCtx.fillStyle = '#222';
+      canvasCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = '#0f0';
+      canvasCtx.beginPath();
+
+      const sliceWidth = waveformCanvas.width / dataArray.length;
+      let x = 0;
+
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * (waveformCanvas.height / 2);
+
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+      canvasCtx.stroke();
+    }
+
+    // Stop listening (optional)
+    function stopListening() {
+      if (animationId) cancelAnimationFrame(animationId);
+      if (audioCtx) audioCtx.close();
+      waveformCanvas.hidden = true;
+    }
+  </script>
+</body>
+</html>
