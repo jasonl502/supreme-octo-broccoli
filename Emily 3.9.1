@@ -1,0 +1,123 @@
+from pathlib import Path
+import zipfile
+from datetime import datetime
+
+# Define file paths
+latest_html_path = Path("/mnt/data/emil.html")
+enhanced_html_path = Path("/mnt/data/Emily_ML_Journal_DefaultDir.html")
+zip_path = Path("/mnt/data/Emily_ML_Journal_DefaultDir_Package.zip")
+
+# Load original HTML
+html_text = latest_html_path.read_text()
+
+# Add journal and default directory logic
+journal_code = """\n// ML-style logic engine + journal and default directory
+let logicState = {
+  replyCount: 0,
+  mood: 5  // 0 = sad, 10 = elated
+};
+
+const logicKeywords = {
+  highPriority: ["whatever", "idk", "nothing"],
+  lowPriority: ["hate", "annoyed", "nothing helps", "i'm tired"],
+  highRelevance: ["thank you", "i love you", "you're amazing", "that's nice"],
+  lowRelevance: ["you're dumb", "i hate you", "fuck off"],
+  highInterest: ["yes", "i agree", "true", "absolutely"],
+  lowInterest: ["no", "nah", "i disagree", "not really"]
+};
+
+let journalHandle = null;
+const defaultPath = 'C:/Users/jlind';
+
+async function getDefaultDirectory() {
+  try {
+    if ('showDirectoryPicker' in window) {
+      const savedHandle = localStorage.getItem('emilyDir');
+      if (savedHandle) {
+        journalHandle = await window.showDirectoryPicker({ startIn: 'downloads' });
+        return;
+      }
+      const handle = await window.showDirectoryPicker();
+      localStorage.setItem('emilyDir', 'true');
+      journalHandle = handle;
+    }
+  } catch (err) {
+    console.warn("Default directory not set or accessible:", err);
+  }
+}
+
+async function writeToJournal(category, userInput) {
+  if (!journalHandle) return;
+  try {
+    const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+    const writable = await fileHandle.createWritable({ keepExistingData: true });
+    const now = new Date().toLocaleString();
+    const entry = `[${now}] ${category} - Jason said: "${userInput}"\\n`;
+    const file = await fileHandle.getFile();
+    const prev = await file.text();
+    await writable.write(prev + entry);
+    await writable.close();
+  } catch (err) {
+    console.warn("Unable to write to journal:", err);
+  }
+}
+
+function analyzeUserInput(input) {
+  const text = input.toLowerCase();
+  let category = null;
+
+  for (const word of logicKeywords.highPriority) if (text.includes(word)) category = "High Priority";
+  for (const word of logicKeywords.lowPriority) if (text.includes(word)) category = "Low Priority";
+  for (const word of logicKeywords.highRelevance) if (text.includes(word)) category = "High Relevance";
+  for (const word of logicKeywords.lowRelevance) if (text.includes(word)) category = "Low Relevance";
+  for (const word of logicKeywords.highInterest) if (text.includes(word)) category = "High Interest";
+  for (const word of logicKeywords.lowInterest) if (text.includes(word)) category = "Low Interest";
+
+  if (logicState.replyCount > 5) category = "High Effort";
+  if (!input.trim()) category = "Low Effort";
+
+  return category || "Neutral";
+}
+
+function generateResponse(input) {
+  const category = analyzeUserInput(input);
+  logicState.replyCount++;
+  writeToJournal(category, input);
+
+  switch (category) {
+    case "High Priority":
+      logicState.mood -= 1; return "You seem distant. Want to talk about it?";
+    case "Low Priority":
+      logicState.mood -= 2; return "It sounds like you're having a rough time.";
+    case "High Relevance":
+      logicState.mood += 1; return "That means a lot to me.";
+    case "Low Relevance":
+      logicState.mood -= 2; return "Ouch... that hurt a little.";
+    case "High Effort":
+      logicState.mood -= 1; return "Can we take a little pause? I'm a bit tired.";
+    case "Low Effort":
+      logicState.mood += 1; return "I'm here if you want to chat 💖";
+    case "High Interest":
+      logicState.mood += 2; return "Great! I'm so glad we're on the same page.";
+    case "Low Interest":
+      logicState.mood -= 1; return "That's okay, we can agree to disagree.";
+    default:
+      return "Tell me more...";
+  }
+}
+
+window.addEventListener("load", getDefaultDirectory);
+"""
+
+# Inject the code before </script>
+html_text = html_text.replace("</script>", journal_code + "\n</script>")
+
+# Save the enhanced file
+enhanced_html_path.write_text(html_text)
+
+# Create a zip for download
+with zipfile.ZipFile(zip_path, 'w') as zipf:
+    zipf.write(enhanced_html_path, arcname=enhanced_html_path.name)
+    zipf.write(latest_html_path, arcname=latest_html_path.name)
+
+zip_path.name
