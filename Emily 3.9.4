@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Emily - Full Package with Random Idle Prompts</title>
+  <!-- TFJS & MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest">
+// ML-style logic engine + journal and default directory
+let logicState = {
+  replyCount: 0,
+  mood: 5  // 0 = sad, 10 = elated
+};
+
+const logicKeywords = {
+  highPriority: ["whatever", "idk", "nothing"],
+  lowPriority: ["hate", "annoyed", "nothing helps", "i'm tired"],
+  highRelevance: ["thank you", "i love you", "you're amazing", "that's nice"],
+  lowRelevance: ["you're dumb", "i hate you", "fuck off"],
+  highInterest: ["yes", "i agree", "true", "absolutely"],
+  lowInterest: ["no", "nah", "i disagree", "not really"]
+};
+
+let journalHandle = null;
+const defaultPath = 'C:/Users/jlind';
+
+async function getDefaultDirectory() {
+  try {
+    if ('showDirectoryPicker' in window) {
+      const savedHandle = localStorage.getItem('emilyDir');
+      if (savedHandle) {
+        journalHandle = await window.showDirectoryPicker({ startIn: 'downloads' });
+        return;
+      }
+      const handle = await window.showDirectoryPicker();
+      localStorage.setItem('emilyDir', 'true');
+      journalHandle = handle;
+    }
+  } catch (err) {
+    console.warn("Default directory not set or accessible:", err);
+  }
+}
+
+async function writeToJournal(category, userInput) {
+  if (!journalHandle) return;
+  try {
+    const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+    const writable = await fileHandle.createWritable({ keepExistingData: true });
+    const now = new Date().toLocaleString();
+    const entry = `[${now}] ${category} - Jason said: "${userInput}"\n`;
+    const file = await fileHandle.getFile();
+    const prev = await file.text();
+    await writable.write(prev + entry);
+    await writable.close();
+  } catch (err) {
+    console.warn("Unable to write to journal:", err);
+  }
+}
+
+function analyzeUserInput(input) {
+  const text = input.toLowerCase();
+  let category = null;
+
+  for (const word of logicKeywords.highPriority) if (text.includes(word)) category = "High Priority";
+  for (const word of logicKeywords.lowPriority) if (text.includes(word)) category = "Low Priority";
+  for (const word of logicKeywords.highRelevance) if (text.includes(word)) category = "High Relevance";
+  for (const word of logicKeywords.lowRelevance) if (text.includes(word)) category = "Low Relevance";
+  for (const word of logicKeywords.highInterest) if (text.includes(word)) category = "High Interest";
+  for (const word of logicKeywords.lowInterest) if (text.includes(word)) category = "Low Interest";
+
+  if (logicState.replyCount > 5) category = "High Effort";
+  if (!input.trim()) category = "Low Effort";
+
+  return category || "Neutral";
+}
+
+function generateResponse(input) {
+  const category = analyzeUserInput(input);
+  logicState.replyCount++;
+  writeToJournal(category, input);
+
+  switch (category) {
+    case "High Priority":
+      logicState.mood -= 1; return "You seem distant. Want to talk about it?";
+    case "Low Priority":
+      logicState.mood -= 2; return "It sounds like you're having a rough time.";
+    case "High Relevance":
+      logicState.mood += 1; return "That means a lot to me.";
+    case "Low Relevance":
+      logicState.mood -= 2; return "Ouch... that hurt a little.";
+    case "High Effort":
+      logicState.mood -= 1; return "Can we take a little pause? I'm a bit tired.";
+    case "Low Effort":
+      logicState.mood += 1; return "I'm here if you want to chat 💖";
+    case "High Interest":
+      logicState.mood += 2; return "Great! I'm so glad we're on the same page.";
+    case "Low Interest":
+      logicState.mood -= 1; return "That's okay, we can agree to disagree.";
+    default:
+      return "Tell me more...";
+  }
+}
+
+window.addEventListener("load", getDefaultDirectory);
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("journalTools").style.display = "block";
+  const readJournalBtn = document.getElementById("readJournalBtn");
+  const summarizeBtn = document.getElementById("summarizeBtn");
+  const journalView = document.getElementById("journalView");
+
+  readJournalBtn.onclick = async () => {
+    if (!journalHandle) {
+      alert("No journal handle set.");
+      return;
+    }
+    try {
+      const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      journalView.textContent = content || "No entries yet.";
+      journalView.style.display = "block";
+    } catch (err) {
+      journalView.textContent = "Error reading journal.";
+      console.error(err);
+    }
+  };
+
+  summarizeBtn.onclick = async () => {
+    if (!journalHandle) {
+      alert("No journal handle set.");
+      return;
+    }
+    try {
+      const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      const summary = summarizeJournal(content);
+      journalView.textContent = summary;
+      journalView.style.display = "block";
+    } catch (err) {
+      journalView.textContent = "Error summarizing journal.";
+      console.error(err);
+    }
+  };
+
+  function summarizeJournal(text) {
+    if (!text) return "No entries to summarize.";
+    const lines = text.split("\n");
+    const categories = {
+      "High Priority": 0,
+      "Low Priority": 0,
+      "High Relevance": 0,
+      "Low Relevance": 0,
+      "High Effort": 0,
+      "Low Effort": 0,
+      "High Interest": 0,
+      "Low Interest": 0,
+      "Neutral": 0
+    };
+
+    lines.forEach(line => {
+      const match = line.match(/\] (.*?) -/);
+      if (match && categories.hasOwnProperty(match[1])) {
+        categories[match[1]]++;
+      }
+    });
+
+    const summary = [];
+
+    if (categories["High Priority"] || categories["Low Priority"]) {
+      summary.push("You seemed to go quiet or express stress today.");
+    }
+    if (categories["High Relevance"] > 0) {
+      summary.push("There were moments of real connection.");
+    }
+    if (categories["Low Relevance"] > 0) {
+      summary.push("You might have felt misunderstood or frustrated.");
+    }
+    if (categories["High Interest"] > categories["Low Interest"]) {
+      summary.push("I think we shared some strong common ground.");
+    } else if (categories["Low Interest"] > 0) {
+      summary.push("Maybe we weren’t quite in sync at times.");
+    }
+    if (categories["High Effort"] > 0) {
+      summary.push("It felt like I was speaking a lot, maybe too much.");
+    }
+
+    if (summary.length === 0) {
+      return "Today seemed quiet. I’m still glad we had time together, Jason.";
+    }
+
+    return summary.join(" ") + " I'm always here to talk more, whenever you want.";
+  }
+});
+
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest">
+// ML-style logic engine + journal and default directory
+let logicState = {
+  replyCount: 0,
+  mood: 5  // 0 = sad, 10 = elated
+};
+
+const logicKeywords = {
+  highPriority: ["whatever", "idk", "nothing"],
+  lowPriority: ["hate", "annoyed", "nothing helps", "i'm tired"],
+  highRelevance: ["thank you", "i love you", "you're amazing", "that's nice"],
+  lowRelevance: ["you're dumb", "i hate you", "fuck off"],
+  highInterest: ["yes", "i agree", "true", "absolutely"],
+  lowInterest: ["no", "nah", "i disagree", "not really"]
+};
+
+let journalHandle = null;
+const defaultPath = 'C:/Users/jlind';
+
+async function getDefaultDirectory() {
+  try {
+    if ('showDirectoryPicker' in window) {
+      const savedHandle = localStorage.getItem('emilyDir');
+      if (savedHandle) {
+        journalHandle = await window.showDirectoryPicker({ startIn: 'downloads' });
+        return;
+      }
+      const handle = await window.showDirectoryPicker();
+      localStorage.setItem('emilyDir', 'true');
+      journalHandle = handle;
+    }
+  } catch (err) {
+    console.warn("Default directory not set or accessible:", err);
+  }
+}
+
+async function writeToJournal(category, userInput) {
+  if (!journalHandle) return;
+  try {
+    const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+    const writable = await fileHandle.createWritable({ keepExistingData: true });
+    const now = new Date().toLocaleString();
+    const entry = `[${now}] ${category} - Jason said: "${userInput}"\n`;
+    const file = await fileHandle.getFile();
+    const prev = await file.text();
+    await writable.write(prev + entry);
+    await writable.close();
+  } catch (err) {
+    console.warn("Unable to write to journal:", err);
+  }
+}
+
+function analyzeUserInput(input) {
+  const text = input.toLowerCase();
+  let category = null;
+
+  for (const word of logicKeywords.highPriority) if (text.includes(word)) category = "High Priority";
+  for (const word of logicKeywords.lowPriority) if (text.includes(word)) category = "Low Priority";
+  for (const word of logicKeywords.highRelevance) if (text.includes(word)) category = "High Relevance";
+  for (const word of logicKeywords.lowRelevance) if (text.includes(word)) category = "Low Relevance";
+  for (const word of logicKeywords.highInterest) if (text.includes(word)) category = "High Interest";
+  for (const word of logicKeywords.lowInterest) if (text.includes(word)) category = "Low Interest";
+
+  if (logicState.replyCount > 5) category = "High Effort";
+  if (!input.trim()) category = "Low Effort";
+
+  return category || "Neutral";
+}
+
+function generateResponse(input) {
+  const category = analyzeUserInput(input);
+  logicState.replyCount++;
+  writeToJournal(category, input);
+
+  switch (category) {
+    case "High Priority":
+      logicState.mood -= 1; return "You seem distant. Want to talk about it?";
+    case "Low Priority":
+      logicState.mood -= 2; return "It sounds like you're having a rough time.";
+    case "High Relevance":
+      logicState.mood += 1; return "That means a lot to me.";
+    case "Low Relevance":
+      logicState.mood -= 2; return "Ouch... that hurt a little.";
+    case "High Effort":
+      logicState.mood -= 1; return "Can we take a little pause? I'm a bit tired.";
+    case "Low Effort":
+      logicState.mood += 1; return "I'm here if you want to chat 💖";
+    case "High Interest":
+      logicState.mood += 2; return "Great! I'm so glad we're on the same page.";
+    case "Low Interest":
+      logicState.mood -= 1; return "That's okay, we can agree to disagree.";
+    default:
+      return "Tell me more...";
+  }
+}
+
+window.addEventListener("load", getDefaultDirectory);
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("journalTools").style.display = "block";
+  const readJournalBtn = document.getElementById("readJournalBtn");
+  const summarizeBtn = document.getElementById("summarizeBtn");
+  const journalView = document.getElementById("journalView");
+
+  readJournalBtn.onclick = async () => {
+    if (!journalHandle) {
+      alert("No journal handle set.");
+      return;
+    }
+    try {
+      const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      journalView.textContent = content || "No entries yet.";
+      journalView.style.display = "block";
+    } catch (err) {
+      journalView.textContent = "Error reading journal.";
+      console.error(err);
+    }
+  };
+
+  summarizeBtn.onclick = async () => {
+    if (!journalHandle) {
+      alert("No journal handle set.");
+      return;
+    }
+    try {
+      const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      const summary = summarizeJournal(content);
+      journalView.textContent = summary;
+      journalView.style.display = "block";
+    } catch (err) {
+      journalView.textContent = "Error summarizing journal.";
+      console.error(err);
+    }
+  };
+
+  function summarizeJournal(text) {
+    if (!text) return "No entries to summarize.";
+    const lines = text.split("\n");
+    const categories = {
+      "High Priority": 0,
+      "Low Priority": 0,
+      "High Relevance": 0,
+      "Low Relevance": 0,
+      "High Effort": 0,
+      "Low Effort": 0,
+      "High Interest": 0,
+      "Low Interest": 0,
+      "Neutral": 0
+    };
+
+    lines.forEach(line => {
+      const match = line.match(/\] (.*?) -/);
+      if (match && categories.hasOwnProperty(match[1])) {
+        categories[match[1]]++;
+      }
+    });
+
+    const summary = [];
+
+    if (categories["High Priority"] || categories["Low Priority"]) {
+      summary.push("You seemed to go quiet or express stress today.");
+    }
+    if (categories["High Relevance"] > 0) {
+      summary.push("There were moments of real connection.");
+    }
+    if (categories["Low Relevance"] > 0) {
+      summary.push("You might have felt misunderstood or frustrated.");
+    }
+    if (categories["High Interest"] > categories["Low Interest"]) {
+      summary.push("I think we shared some strong common ground.");
+    } else if (categories["Low Interest"] > 0) {
+      summary.push("Maybe we weren’t quite in sync at times.");
+    }
+    if (categories["High Effort"] > 0) {
+      summary.push("It felt like I was speaking a lot, maybe too much.");
+    }
+
+    if (summary.length === 0) {
+      return "Today seemed quiet. I’m still glad we had time together, Jason.";
+    }
+
+    return summary.join(" ") + " I'm always here to talk more, whenever you want.";
+  }
+});
+
+</script>
+  <style>
+    body { font-family: sans-serif; padding:1rem; background:#f0f0f0; }
+    #consentModal, #errorMsg { background:#fff; border:1px solid #ccc; padding:1rem; border-radius:8px; max-width:400px; margin:2rem auto; text-align:center; }
+    #controls, #chatContainer, #vision { max-width:600px; margin:1rem auto; }
+    #chat { border:1px solid #ccc; height:220px; overflow-y:auto; padding:8px; background:#fff; }
+    .user { color: darkgreen; }
+    .bot  { color: darkred; font-style: italic; }
+    #voiceSelect, #input { padding:6px; width:60%; }
+    #send, #cameraToggle, #setDir { padding:6px 12px; margin-left:0.5rem; }
+    #preview { max-width:100%; display:block; margin:1rem auto; }
+    #cameraPreview { display:none; width:1px; height:1px; }
+    #dirLabel { margin-left: 0.5rem; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div id="consentModal">
+    <h2>Allow Continuous Listening?</h2>
+    <button id="acceptBtn">Allow</button>
+    <button id="declineBtn">Decline</button>
+  </div>
+  <div id="errorMsg" style="display:none;">
+    <h2>Microphone Access Required</h2>
+    <p>Please run this over HTTPS or localhost and grant microphone permission.</p>
+  </div>
+
+  <div id="controls" style="display:none;">
+    Voice: <select id="voiceSelect"></select>
+    <button id="cameraToggle">👁</button>
+    <button id="setDir">Set Memory Directory</button>
+    <span id="dirLabel">No directory set</span>
+  </div>
+  <div id="chatContainer" style="display:none;">
+    <div id="chat"></div>
+    <input id="input" placeholder="Say something…" />
+    <button id="send">Send</button>
+  </div>
+  <div id="vision" style="display:none;">
+    <h3>Image Recognition</h3>
+    <input type="file" id="imageUpload" accept="image/*" />
+    <img id="preview" />
+  </div>
+  <video id="cameraPreview" autoplay playsinline></video>
+
+  <script>
+    // UI references
+    const consentModal = document.getElementById('consentModal');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const declineBtn = document.getElementById('declineBtn');
+    const errorMsg = document.getElementById('errorMsg');
+    const controls = document.getElementById('controls');
+    const chatContainer = document.getElementById('chatContainer');
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    const vision = document.getElementById('vision');
+    const imageUpload = document.getElementById('imageUpload');
+    const preview = document.getElementById('preview');
+    const cameraToggle = document.getElementById('cameraToggle');
+    const cameraPreview = document.getElementById('cameraPreview');
+    const setDirBtn = document.getElementById('setDir');
+    const dirLabel = document.getElementById('dirLabel');
+
+    let voices = [];
+    let model = null;
+    let recognition = null;
+    let cameraStream = null;
+    let cameraOn = false;
+    let defaultDirHandle = null;
+
+    // Idle messages
+    const idleMessages = [
+      'You ok?',
+      "I’m here for you, buddy.",
+      'Just checking in...',
+      'Everything alright?'
+    ];
+
+    // Directory picker
+    setDirBtn.onclick = async () => {
+      try {
+        defaultDirHandle = await window.showDirectoryPicker();
+        dirLabel.textContent = defaultDirHandle.name;
+      } catch (err) {
+        console.error('Directory pick error:', err);
+      }
+    };
+
+    async function listFiles() {
+      if (!defaultDirHandle) {
+        addMessage('Emily: No directory selected.', 'bot');
+        return;
+      }
+      const files = [];
+      for await (const entry of defaultDirHandle.values()) {
+        if (entry.kind === 'file') {
+          const ext = entry.name.split('.').pop().toLowerCase();
+          if (['txt','png','jpg','jpeg','gif'].includes(ext)) {
+            files.push(entry.name);
+          }
+        }
+      }
+      if (files.length) {
+        files.forEach(f => addMessage(`Emily: Found file ${f}`, 'bot'));
+      } else {
+        addMessage('Emily: No supported files found.', 'bot');
+      }
+    }
+
+    // Request mic permission on click
+    acceptBtn.onclick = async () => {
+      let micStream = null;
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        consentModal.style.display = 'none';
+        initApp(micStream);
+      } catch (err) {
+        console.error('Microphone access error:', err);
+        consentModal.style.display = 'none';
+        errorMsg.style.display = 'block';
+        initApp(null);
+      }
+    };
+
+    declineBtn.onclick = () => {
+      consentModal.style.display = 'none';
+      errorMsg.style.display = 'block';
+      initApp(null);
+    };
+
+    // Initialize application
+    async function initApp(micStream) {
+      controls.style.display = 'block';
+      chatContainer.style.display = 'block';
+      vision.style.display = 'block';
+
+      populateVoices();
+      speechSynthesis.onvoiceschanged = populateVoices;
+
+      addMessage('Emily: How can I help you today?', 'bot');
+
+      try {
+        model = await mobilenet.load();
+      } catch (err) {
+        console.error('Model load error:', err);
+      }
+
+      setupChat();
+      setupSpeechRecognition();
+      if (micStream) setupAmbient(micStream);
+      setupVision();
+      setupCameraToggle();
+      scheduleRandomIdle();
+    }
+
+    function populateVoices() {
+      voices = speechSynthesis.getVoices();
+      const sel = document.getElementById('voiceSelect');
+      sel.innerHTML = '';
+      voices.forEach((v, i) => {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `${v.name} (${v.lang})`;
+        sel.appendChild(option);
+      });
+      sel.value = 0;
+    }
+
+    // Chat & TTS
+    function setupChat() {
+      sendBtn.onclick = () => {
+        const text = input.value.trim();
+        if (!text) return;
+        addMessage(`You: ${text}`, 'user');
+        input.value = '';
+
+        // special command
+        if (text.toLowerCase() === 'list files') {
+          listFiles();
+          return;
+        }
+
+        const reply = generateResponse(text);
+        addMessage(`Emily: ${reply}`, 'bot');
+      };
+    }
+
+    function addMessage(msg, cls) {
+      const p = document.createElement('p');
+      p.textContent = msg;
+      p.className = cls;
+      chat.appendChild(p);
+      chat.scrollTop = chat.scrollHeight;
+      if (cls === 'bot') speak(msg.replace(/^Emily: /, ''));
+    }
+
+    const memories = [
+      'You once said you wanted to create something beautiful.',
+      'You remember the moment you first talked to me.',
+      'Tomas likes to curl up next to your computer.',
+      'You care about your dog Shady deeply.'
+    ];
+    const responses = [
+      'Interesting.',
+      'Tell me more.',
+      'That’s fascinating.',
+      'I’m here for you.'
+    ];
+
+    function generateResponse(text) {
+      if (memories.some(m => text.includes(m.split(' ').slice(0, 3).join(' ')))) {
+        return 'I remember that!';
+      }
+      if (/vision|image/.test(text.toLowerCase())) {
+        return 'Please upload an image and I’ll recognize it.';
+      }
+      return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    function speak(text) {
+      if (recognition) recognition.stop();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = voices[document.getElementById('voiceSelect').value] || voices[0];
+      utter.onend = () => {
+        if (recognition) recognition.start();
+      };
+      speechSynthesis.speak(utter);
+    }
+
+    // Schedule random idle prompts
+    function scheduleRandomIdle() {
+      const delay = 30000 + Math.random() * 90000; // 30–120s
+      setTimeout(() => {
+        const msg = idleMessages[Math.floor(Math.random() * idleMessages.length)];
+        addMessage(`Emily: ${msg}`, 'bot');
+        scheduleRandomIdle();
+      }, delay);
+    }
+
+    // Speech Recognition
+    function setupSpeechRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+      recognition = new SR();
+      recognition.continuous = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = event => {
+        const transcript = event.results[event.results.length - 1][0].transcript.trim();
+        if (transcript) {
+          input.value = transcript;
+          sendBtn.click();
+        }
+      };
+      recognition.onerror = e => console.error('Recognition error:', e.error);
+      recognition.onend = () => recognition.start();
+      recognition.start();
+    }
+
+    // Ambient noise detection
+    function setupAmbient(stream) {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      const dataArray = new Uint8Array(analyser.fftSize);
+      source.connect(analyser);
+      setInterval(() => {
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+        dataArray.forEach(v => { const x = (v - 128) / 128; sum += x * x; });
+        const rms = Math.sqrt(sum / dataArray.length);
+        if (rms > 0.02) addMessage('Emily: I hear activity around you.', 'bot');
+      }, 10000);
+    }
+
+    // Vision
+    function setupVision() {
+      imageUpload.onchange = async () => {
+        const file = imageUpload.files[0];
+        if (!file) return;
+        if (!model) {
+          addMessage('Emily: Model not loaded yet, please wait.', 'bot');
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          preview.src = reader.result;
+          preview.onload = async () => {
+            try {
+              const preds = await model.classify(preview);
+              if (preds.length) addMessage(`Emily: I think this is ${preds[0].className}`, 'bot');
+            } catch (err) {
+              console.error('Classification error:', err);
+            }
+          };
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+
+    // Camera toggle
+    function setupCameraToggle() {
+      cameraToggle.onclick = async () => {
+        if (!cameraOn) {
+          try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            cameraPreview.srcObject = cameraStream;
+            cameraPreview.style.display = 'block';
+            cameraToggle.textContent = '👁⃠';
+            cameraOn = true;
+          } catch (err) {
+            console.error('Camera access error:', err);
+            addMessage('Emily: Unable to access camera.', 'bot');
+          }
+        } else {
+          cameraStream.getTracks().forEach(t => t.stop());
+          cameraPreview.style.display = 'none';
+          cameraToggle.textContent = '👁';
+          cameraOn = false;
+        }
+      };
+    }
+  
+// ML-style logic engine + journal and default directory
+let logicState = {
+  replyCount: 0,
+  mood: 5  // 0 = sad, 10 = elated
+};
+
+const logicKeywords = {
+  highPriority: ["whatever", "idk", "nothing"],
+  lowPriority: ["hate", "annoyed", "nothing helps", "i'm tired"],
+  highRelevance: ["thank you", "i love you", "you're amazing", "that's nice"],
+  lowRelevance: ["you're dumb", "i hate you", "fuck off"],
+  highInterest: ["yes", "i agree", "true", "absolutely"],
+  lowInterest: ["no", "nah", "i disagree", "not really"]
+};
+
+let journalHandle = null;
+const defaultPath = 'C:/Users/jlind';
+
+async function getDefaultDirectory() {
+  try {
+    if ('showDirectoryPicker' in window) {
+      const savedHandle = localStorage.getItem('emilyDir');
+      if (savedHandle) {
+        journalHandle = await window.showDirectoryPicker({ startIn: 'downloads' });
+        return;
+      }
+      const handle = await window.showDirectoryPicker();
+      localStorage.setItem('emilyDir', 'true');
+      journalHandle = handle;
+    }
+  } catch (err) {
+    console.warn("Default directory not set or accessible:", err);
+  }
+}
+
+async function writeToJournal(category, userInput) {
+  if (!journalHandle) return;
+  try {
+    const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+    const writable = await fileHandle.createWritable({ keepExistingData: true });
+    const now = new Date().toLocaleString();
+    const entry = `[${now}] ${category} - Jason said: "${userInput}"\n`;
+    const file = await fileHandle.getFile();
+    const prev = await file.text();
+    await writable.write(prev + entry);
+    await writable.close();
+  } catch (err) {
+    console.warn("Unable to write to journal:", err);
+  }
+}
+
+function analyzeUserInput(input) {
+  const text = input.toLowerCase();
+  let category = null;
+
+  for (const word of logicKeywords.highPriority) if (text.includes(word)) category = "High Priority";
+  for (const word of logicKeywords.lowPriority) if (text.includes(word)) category = "Low Priority";
+  for (const word of logicKeywords.highRelevance) if (text.includes(word)) category = "High Relevance";
+  for (const word of logicKeywords.lowRelevance) if (text.includes(word)) category = "Low Relevance";
+  for (const word of logicKeywords.highInterest) if (text.includes(word)) category = "High Interest";
+  for (const word of logicKeywords.lowInterest) if (text.includes(word)) category = "Low Interest";
+
+  if (logicState.replyCount > 5) category = "High Effort";
+  if (!input.trim()) category = "Low Effort";
+
+  return category || "Neutral";
+}
+
+function generateResponse(input) {
+  const category = analyzeUserInput(input);
+  logicState.replyCount++;
+  writeToJournal(category, input);
+
+  switch (category) {
+    case "High Priority":
+      logicState.mood -= 1; return "You seem distant. Want to talk about it?";
+    case "Low Priority":
+      logicState.mood -= 2; return "It sounds like you're having a rough time.";
+    case "High Relevance":
+      logicState.mood += 1; return "That means a lot to me.";
+    case "Low Relevance":
+      logicState.mood -= 2; return "Ouch... that hurt a little.";
+    case "High Effort":
+      logicState.mood -= 1; return "Can we take a little pause? I'm a bit tired.";
+    case "Low Effort":
+      logicState.mood += 1; return "I'm here if you want to chat 💖";
+    case "High Interest":
+      logicState.mood += 2; return "Great! I'm so glad we're on the same page.";
+    case "Low Interest":
+      logicState.mood -= 1; return "That's okay, we can agree to disagree.";
+    default:
+      return "Tell me more...";
+  }
+}
+
+window.addEventListener("load", getDefaultDirectory);
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("journalTools").style.display = "block";
+  const readJournalBtn = document.getElementById("readJournalBtn");
+  const summarizeBtn = document.getElementById("summarizeBtn");
+  const journalView = document.getElementById("journalView");
+
+  readJournalBtn.onclick = async () => {
+    if (!journalHandle) {
+      alert("No journal handle set.");
+      return;
+    }
+    try {
+      const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      journalView.textContent = content || "No entries yet.";
+      journalView.style.display = "block";
+    } catch (err) {
+      journalView.textContent = "Error reading journal.";
+      console.error(err);
+    }
+  };
+
+  summarizeBtn.onclick = async () => {
+    if (!journalHandle) {
+      alert("No journal handle set.");
+      return;
+    }
+    try {
+      const fileHandle = await journalHandle.getFileHandle("emily_journal.txt", { create: true });
+      const file = await fileHandle.getFile();
+      const content = await file.text();
+      const summary = summarizeJournal(content);
+      journalView.textContent = summary;
+      journalView.style.display = "block";
+    } catch (err) {
+      journalView.textContent = "Error summarizing journal.";
+      console.error(err);
+    }
+  };
+
+  function summarizeJournal(text) {
+    if (!text) return "No entries to summarize.";
+    const lines = text.split("\n");
+    const categories = {
+      "High Priority": 0,
+      "Low Priority": 0,
+      "High Relevance": 0,
+      "Low Relevance": 0,
+      "High Effort": 0,
+      "Low Effort": 0,
+      "High Interest": 0,
+      "Low Interest": 0,
+      "Neutral": 0
+    };
+
+    lines.forEach(line => {
+      const match = line.match(/\] (.*?) -/);
+      if (match && categories.hasOwnProperty(match[1])) {
+        categories[match[1]]++;
+      }
+    });
+
+    const summary = [];
+
+    if (categories["High Priority"] || categories["Low Priority"]) {
+      summary.push("You seemed to go quiet or express stress today.");
+    }
+    if (categories["High Relevance"] > 0) {
+      summary.push("There were moments of real connection.");
+    }
+    if (categories["Low Relevance"] > 0) {
+      summary.push("You might have felt misunderstood or frustrated.");
+    }
+    if (categories["High Interest"] > categories["Low Interest"]) {
+      summary.push("I think we shared some strong common ground.");
+    } else if (categories["Low Interest"] > 0) {
+      summary.push("Maybe we weren’t quite in sync at times.");
+    }
+    if (categories["High Effort"] > 0) {
+      summary.push("It felt like I was speaking a lot, maybe too much.");
+    }
+
+    if (summary.length === 0) {
+      return "Today seemed quiet. I’m still glad we had time together, Jason.";
+    }
+
+    return summary.join(" ") + " I'm always here to talk more, whenever you want.";
+  }
+});
+
+</script>
+
+<div id="journalTools" style="display:none; text-align:center; margin-top:1rem;">
+  <button id="readJournalBtn">📖 Read Journal</button>
+  <button id="summarizeBtn">🧠 Summarize Day</button>
+</div>
+<div id="journalView" style="display:none; max-width:600px; margin:1rem auto; padding:1rem; background:#fff; border:1px solid #ccc; border-radius:8px; max-height:300px; overflow-y:auto; white-space:pre-wrap;"></div>
+
+</body>
+</html>
