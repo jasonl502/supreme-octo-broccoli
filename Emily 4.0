@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emily - All Features (Updated)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
+  <style>
+    body { font-family: sans-serif; background:#f0f0f0; padding:1rem; }
+    #chat { border:1px solid #ccc; background:#fff; height:300px; overflow-y:auto; padding:8px; max-width:600px; margin:1rem auto; }
+    .user { color: darkgreen; margin:4px 0; }
+    .bot  { color: darkred; font-style: italic; margin:4px 0; }
+    #controls { text-align: center; margin-top: 1rem; }
+    #input, #voiceSelect { padding:6px; width:50%; }
+    #send, #speak, #setDir { padding:6px 12px; margin-left: 0.5rem; }
+    #dirLabel { font-style: italic; margin-left: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center">Emily</h2>
+  <div id="controls">
+    Voice: <select id="voiceSelect"></select>
+    <button id="setDir">Set Memory Directory</button>
+    <span id="dirLabel">No directory set</span>
+  </div>
+  <div id="chat"></div>
+  <div id="controls">
+    <input id="input" placeholder="Say something...">
+    <button id="send">Send</button>
+    <button id="speak">Speak</button>
+  </div>
+
+  <script>
+    // Element references
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    const speakBtn = document.getElementById('speak');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const setDirBtn = document.getElementById('setDir');
+    const dirLabel = document.getElementById('dirLabel');
+
+    // State
+    let voices = [];
+    let journalHandle = null;
+    let logicState = { replyCount: 0, mood: 5 };
+
+    // Keywords for logic categories
+    const logicKeywords = { /* same as before */
+      highPriority: ["whatever", "idk", "nothing"],
+      lowPriority: ["hate", "annoyed", "nothing helps", "i'm tired"],
+      highRelevance: ["thank you", "i love you", "you're amazing", "that's nice"],
+      lowRelevance: ["you're dumb", "i hate you", "fuck off"],
+      highInterest: ["yes", "i agree", "true", "absolutely"],
+      lowInterest: ["no", "nah", "i disagree", "not really"]
+    };
+    const fallbackResponses = [
+      "I'd love to hear more about that.",
+      "What else is on your mind?",
+      "Can you share more details?",
+      "Why do you feel that way?",
+      "Tell me what you're thinking next."
+    ];
+
+    // Utility: add message to chat
+    function addMessage(msg, cls) {
+      const p = document.createElement('p'); p.textContent = msg; p.className = cls;
+      chat.appendChild(p); chat.scrollTop = chat.scrollHeight;
+      if (cls === 'bot') speak(msg.replace(/^Emily: /, ''));
+    }
+
+    // Speech Synthesis
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = voices[voiceSelect.value] || voices[0];
+      speechSynthesis.speak(utter);
+    }
+
+    function populateVoices() {
+      voices = speechSynthesis.getVoices();
+      voiceSelect.innerHTML = '';
+      voices.forEach((v,i)=>{
+        const o = document.createElement('option'); o.value=i; o.textContent=`${v.name} (${v.lang})`;
+        voiceSelect.appendChild(o);
+      });
+      voiceSelect.value = 0;
+    }
+    window.speechSynthesis.onvoiceschanged = populateVoices;
+    window.addEventListener('load', populateVoices);
+
+    // Speech Recognition setup with error handling
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    if (!Recognition) {
+      speakBtn.disabled = true;
+      speakBtn.textContent = 'Speak (unsupported)';
+    } else {
+      recognition = new Recognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        input.value = transcript;
+        sendBtn.click();
+      };
+      recognition.onerror = (e) => {
+        console.warn('Speech recognition error', e.error);
+        addMessage('Emily: Sorry, I could not hear you. Please try again.','bot');
+      };
+      // safe start
+      speakBtn.onclick = () => {
+        try { recognition.start(); }
+        catch(err) {
+          console.error('Failed to start recognition', err);
+          addMessage('Emily: Speech recognition failed to start.','bot');
+        }
+      };
+    }
+
+    // Chat logic
+    function analyzeUserInput(text) {
+      const lower = text.toLowerCase().trim();
+      if (!lower) return 'Low Effort';
+      for (const [key, words] of Object.entries(logicKeywords)) {
+        if (words.some(w=>lower.includes(w))) return key.replace(/([A-Z])/g,' $1').trim();
+      }
+      if (logicState.replyCount > 5) return 'High Effort';
+      return 'Neutral';
+    }
+    function writeToJournal(cat, txt) {
+      if (!journalHandle) return;
+      // existing async journal write as before
+    }
+    function generateResponse(text) {
+      const cat = analyzeUserInput(text);
+      logicState.replyCount++;
+      writeToJournal(cat, text);
+      const m = { 'High Priority':"You seem distant. Want to talk about it?",
+                'Low Priority':"It sounds like you're having a rough time.",
+                'High Relevance':"That means a lot to me.",
+                'Low Relevance':"Ouch... that hurt a little.",
+                'High Effort':"Can we take a little pause? I'm a bit tired.",
+                'Low Effort':"I'm here if you want to chat 💖",
+                'High Interest':"Great! I'm so glad we're on the same page.",
+                'Low Interest':"That's okay, we can agree to disagree." };
+      return m[cat] || fallbackResponses[Math.floor(Math.random()*fallbackResponses.length)];
+    }
+
+    // Send button
+    sendBtn.onclick = ()=> {
+      const txt = input.value.trim(); if(!txt) return;
+      addMessage('You: '+txt,'user');
+      const rep = generateResponse(txt);
+      addMessage('Emily: '+rep,'bot');
+      input.value = '';
+    };
+
+    // Directory picker
+    setDirBtn.onclick = async ()=>{
+      try { journalHandle = await window.showDirectoryPicker(); dirLabel.textContent = journalHandle.name; }
+      catch(err){ console.warn('Directory access failed',err); }
+    };
+  </script>
+</body>
+</html>
