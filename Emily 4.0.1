@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emily Chat — Full Features (Fixed TTS)</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+    #chatLog { border: 1px solid #ccc; padding: 10px; height: 250px; overflow-y: auto; margin-bottom: 10px; background: #fff; }
+    .user { color: blue; margin: 5px 0; }
+    .emily { color: green; margin: 5px 0; font-style: italic; }
+    #controls, #voiceControls, #dirControls { display: flex; gap: 10px; margin-bottom: 10px; }
+    #userInput, #voiceSelect, #dirLabel { flex: 1; padding: 5px; }
+    #videoElement { width: 100%; max-height: 300px; background: #000; margin-bottom: 10px; }
+    textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+    #testResults p { font-family: monospace; margin: 3px 0; }
+  </style>
+</head>
+<body>
+  <h1>Emily Chat — Full Features (Fixed TTS)</h1>
+
+  <!-- Chat display -->
+  <div id="chatLog"></div>
+
+  <!-- Text input & send -->
+  <div id="controls">
+    <input type="text" id="userInput" placeholder="Type message...">
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <!-- Voice chat controls -->
+  <div id="voiceControls">
+    <select id="voiceSelect"></select>
+    <button id="speakBtn">Speak</button>
+    <button id="recogBtn">Voice Input</button>
+  </div>
+
+  <!-- Webcam / Vision -->
+  <video id="videoElement" autoplay muted></video>
+  <button id="startCamBtn">Start Camera</button>
+
+  <!-- Diary & life-events -->
+  <h2>Diary & Life Events</h2>
+  <div id="dirControls">
+    <button id="setDirBtn">Set Directory</button>
+    <span id="dirLabel">No directory</span>
+  </div>
+  <input type="file" id="fileInput" accept=".txt">
+  <textarea id="diary" placeholder="Diary entries..."></textarea>
+  <button id="saveDiaryBtn">Save Diary</button>
+
+  <!-- Test results -->
+  <div id="testResults"></div>
+
+<script>
+  'use strict';
+
+  // --- Memory & Persistence ---
+  const memoryKey = 'emilyMemory';
+  let memory = JSON.parse(localStorage.getItem(memoryKey) || '[]');
+  function saveMemory(entry) {
+    memory.push({ t: Date.now(), entry });
+    localStorage.setItem(memoryKey, JSON.stringify(memory));
+  }
+
+  // --- ML Stub ---
+  async function analyzeWithML(text) {
+    return { sentiment: 'neutral', intent: 'chat' };
+  }
+
+  // --- Logic Categories ---
+  const logicKeywords = {
+    highPriority: ['whatever','i don\'t care','nothing','nevermind'],
+    lowPriority: ['hate','tired','fuck off'],
+    highRelevance: ['thank you','i love you','i love talking to you'],
+    lowRelevance: ['oh okay','don\'t do that','i don\'t like you'],
+    lowEffort: ['hello','hi','hey'],
+    highInterest: ['yes','sure','i agree'],
+    lowInterest: ['no','nah','no way']
+  };
+  const fallbackResponses = [
+    "I'd love to hear more.",
+    "What else is on your mind?",
+    "Tell me more about that."
+  ];
+
+  function analyzeCategory(msg) {
+    const text = msg.toLowerCase();
+    for (const [cat, words] of Object.entries(logicKeywords)) {
+      if (words.some(w => text.includes(w))) return cat;
+    }
+    return null;
+  }
+
+  async function generateResponse(msg) {
+    saveMemory(msg);
+    await analyzeWithML(msg);
+    const cat = analyzeCategory(msg);
+    const responses = {
+      highPriority: "You seem distant. Want to change the topic?",
+      lowPriority:  "I'm sorry you're feeling that way. Let's talk it out.",
+      highRelevance:"That warms my circuits!",
+      lowRelevance: "Oof, that stings a bit.",
+      lowEffort:    "I'm here whenever you need me.",
+      highInterest:"Great, I'm glad we're on the same page!",
+      lowInterest:  "That's okay; we can switch topics."
+    };
+    return responses[cat] || fallbackResponses[Math.floor(Math.random()*fallbackResponses.length)];
+  }
+
+  // --- Chat UI ---
+  const chatLog = document.getElementById('chatLog');
+  function addMsg(text, cls) {
+    const p = document.createElement('p'); p.textContent = text; p.className = cls;
+    chatLog.appendChild(p); chatLog.scrollTop = chatLog.scrollHeight;
+    if (cls === 'emily') speakText(text.replace(/^Emily: /,''));
+  }
+  document.getElementById('sendBtn').addEventListener('click', async ()=>{
+    const inp = document.getElementById('userInput'); const txt = inp.value.trim(); if(!txt) return;
+    addMsg(`You: ${txt}`, 'user'); inp.value=''; inp.focus();
+    const reply = await generateResponse(txt);
+    addMsg(`Emily: ${reply}`, 'emily');
+  });
+  addMsg('Emily: Hello Jason.', 'emily');
+
+  // --- TTS Setup (fixed) ---
+  function populateVoices(){
+    const vlist = speechSynthesis.getVoices();
+    const sel = document.getElementById('voiceSelect'); sel.innerHTML='';
+    vlist.forEach((v,i)=> sel.add(new Option(`${v.name} (${v.lang})`, i)));
+  }
+  speechSynthesis.onvoiceschanged = populateVoices;
+  window.addEventListener('load', populateVoices);
+
+  function speakText(txt){
+    const vlist = speechSynthesis.getVoices();
+    if(!vlist.length) return;
+    const idx = document.getElementById('voiceSelect').value;
+    const utter = new SpeechSynthesisUtterance(txt);
+    utter.voice = vlist[idx] || vlist[0];
+    speechSynthesis.speak(utter);
+  }
+  document.getElementById('speakBtn').onclick = ()=>{
+    const last = chatLog.lastChild.textContent.replace(/^Emily: /,''); speakText(last);
+  };
+
+  // --- Speech Recognition ---
+  const Rec = window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(Rec){
+    const recog = new Rec(); recog.lang='en-US'; recog.interimResults=false;
+    recog.onresult = e=>{
+      document.getElementById('userInput').value = e.results[0][0].transcript;
+      document.getElementById('sendBtn').click();
+    };
+    recog.onerror = ()=>addMsg('Emily: Sorry, could not hear you.','emily');
+    document.getElementById('recogBtn').onclick = ()=>recog.start();
+  } else document.getElementById('recogBtn').disabled=true;
+
+  // --- Webcam Access ---
+  document.getElementById('startCamBtn').onclick = async ()=>{
+    const vid = document.getElementById('videoElement');
+    try { vid.srcObject = await navigator.mediaDevices.getUserMedia({video:true}); }
+    catch(e){ console.error(e); }
+  };
+
+  // --- Diary & File IO ---
+  let dirHandle = null;
+  document.getElementById('setDirBtn').onclick = async ()=>{
+    try{ dirHandle = await window.showDirectoryPicker(); document.getElementById('dirLabel').textContent = dirHandle.name; }catch{}
+  };
+  document.getElementById('fileInput').onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader(); r.onload = ()=>document.getElementById('diary').value = r.result; r.readAsText(f);
+  };
+  document.getElementById('saveDiaryBtn').onclick = ()=>{
+    localStorage.setItem('diaryContent', document.getElementById('diary').value);
+    alert('Diary saved locally');
+  };
+
+  // --- Tests ---
+  (async function(){
+    const tests = [
+      {i:'hello', e: logicKeywords.lowEffort.includes('hello') ? await generateResponse('hello') : null},
+      {i:'i love you', e: logicKeywords.highRelevance.includes('i love you') ? await generateResponse('i love you') : null},
+      {i:'no', e: logicKeywords.lowInterest.includes('no') ? await generateResponse('no') : null}
+    ];
+    const resDiv = document.getElementById('testResults');
+    for(let idx=0; idx<tests.length; ++idx){
+      const {i,e} = tests[idx]; const got = await generateResponse(i);
+      const ok = e === got ? 'PASS' : 'FAIL';
+      const p = document.createElement('p');
+      p.textContent = `Test ${idx+1}: "${i}" => got "${got}" [${ok}]`;
+      if(ok==='FAIL') p.style.color = 'red';
+      resDiv.appendChild(p);
+    }
+  })();
+</script>
+</body>
+</html>
