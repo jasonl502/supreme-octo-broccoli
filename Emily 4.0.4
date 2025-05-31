@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emily - Enhanced AI Companion (No Gemini)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest/dist/mobilenet.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        #chatLog::-webkit-scrollbar { width: 8px; }
+        #chatLog::-webkit-scrollbar-track { background: #e5e7eb; border-radius: 10px; }
+        #chatLog::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 10px; }
+        #chatLog::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .chat-bubble { padding: 10px 14px; border-radius: 16px; max-width: 80%; word-wrap: break-word; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .user-bubble { background-color: #3b82f6; color: white; align-self: flex-end; margin-left: auto; }
+        .emily-bubble { background-color: #10b981; color: white; align-self: flex-start; }
+        .system-bubble { background-color: #f9fafb; color: #4b5563; align-self: center; font-size: 0.875rem; font-style: italic; border: 1px solid #e5e7eb; }
+        .section-card { background-color: white; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content { background-color: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); text-align: center; max-width: 90%; width: 450px; }
+        .modal-content h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: #10b981; }
+        .modal-content p { margin-bottom: 1.5rem; color: #4b5563; }
+        .modal-close-button { background-color: #10b981; color: white; padding: 0.75rem 1.5rem; border-radius: 0.375rem; font-weight: 500; transition: background-color 0.2s; }
+        .modal-close-button:hover { background-color: #059669; }
+        .loading-indicator { display: inline-block; border: 3px solid #f3f3f3; border-top: 3px solid #10b981; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-left: 8px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div class="container mx-auto max-w-4xl p-4">
+        <header class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-emerald-600">Emily</h1>
+            <p class="text-lg text-gray-600">Your Enhanced AI Companion (Offline)</p>
+        </header>
+
+        <section class="section-card" id="controlsSection">
+            <h2 class="text-2xl font-semibold mb-4 text-emerald-700">Controls</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <label for="voiceSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Voice:</label>
+                    <select id="voiceSelect" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500"></select>
+                    <button id="speakButton" class="mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out" title="Speak last Emily message">
+                        Speak Last Message
+                    </button>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Journal Directory:</label>
+                    <button id="selectDirButton" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out">
+                        Select Journal Directory
+                    </button>
+                    <p id="dirLabel" class="mt-2 text-sm text-gray-500 italic">No directory selected.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-card" id="chatSection">
+            <h2 class="text-2xl font-semibold mb-4 text-emerald-700">Chat with Emily</h2>
+            <div id="chatLog" class="h-96 overflow-y-auto border border-gray-200 bg-gray-50 rounded-md p-4 mb-4 flex flex-col space-y-3"></div>
+            <div class="flex gap-3 items-center">
+                <input type="text" id="userInput" class="flex-grow p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="Type your message...">
+                <button id="sendButton" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 rounded-md shadow-sm transition duration-150 ease-in-out">
+                    Send
+                </button>
+                <div id="chatLoadingIndicator" class="loading-indicator hidden"></div>
+            </div>
+        </section>
+
+        <section class="section-card" id="diarySection">
+            <h2 class="text-2xl font-semibold mb-4 text-emerald-700">Personal Diary</h2>
+            <textarea id="diaryTextarea" class="w-full h-40 p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="Write your diary thoughts here..."></textarea>
+            <div class="flex gap-4 mt-4">
+                <button id="saveDiaryButton" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm">Save Diary</button>
+                <label class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm cursor-pointer text-center">
+                    Load Diary from File
+                    <input type="file" id="loadDiaryInput" class="hidden" accept=".txt">
+                </label>
+            </div>
+            <p id="diaryStatus" class="mt-2 text-sm text-gray-500 italic"></p>
+        </section>
+
+        <section class="section-card" id="visionSection">
+            <h2 class="text-2xl font-semibold mb-4 text-emerald-700">Emily's Vision</h2>
+            <div class="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                    <video id="videoElement" class="w-full h-auto bg-gray-900 rounded-md shadow" playsinline muted autoplay></video>
+                </div>
+                <div>
+                    <button id="startCameraButton" class="w-full mb-3 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out">Start Camera</button>
+                    <p id="classificationOutput" class="text-gray-700 p-3 border border-gray-200 bg-gray-50 rounded-md min-h-[50px]">Camera off or objects not identified.</p>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="text-center mt-12 mb-6">
+            <p class="text-sm text-gray-500">&copy; Emily AI Companion. All features offline.</p>
+        </footer>
+    </div>
+
+    <div id="customAlertModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="customAlertTitle">Notification</h3>
+            <p id="customAlertMessage"></p>
+            <button id="customAlertCloseButton" class="modal-close-button">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Global State and Configuration ---
+        let journalHandle = null;
+        let mobilenetModel = null;
+        let voices = [];
+        let susanVoice = null;
+        let lastEmilyMessage = "";
+        let idlePromptInterval = null;
+
+        // --- DOM Elements ---
+        const chatLog = document.getElementById('chatLog');
+        const userInput = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+        const chatLoadingIndicator = document.getElementById('chatLoadingIndicator');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const speakButton = document.getElementById('speakButton');
+        const selectDirButton = document.getElementById('selectDirButton');
+        const dirLabel = document.getElementById('dirLabel');
+        
+        const diaryTextarea = document.getElementById('diaryTextarea');
+        const saveDiaryButton = document.getElementById('saveDiaryButton');
+        const loadDiaryInput = document.getElementById('loadDiaryInput');
+        const diaryStatus = document.getElementById('diaryStatus');
+
+        const videoElement = document.getElementById('videoElement');
+        const startCameraButton = document.getElementById('startCameraButton');
+        const classificationOutput = document.getElementById('classificationOutput');
+
+        const customAlertModal = document.getElementById('customAlertModal');
+        const customAlertTitle = document.getElementById('customAlertTitle');
+        const customAlertMessage = document.getElementById('customAlertMessage');
+        const customAlertCloseButton = document.getElementById('customAlertCloseButton');
+
+        // --- Initialization ---
+        window.onload = async () => {
+            console.log("App loading without Gemini...");
+            setupEventListeners();
+            populateVoiceList();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoiceList;
+            }
+            loadDiary(); 
+            try {
+                console.log("Loading MobileNet model...");
+                classificationOutput.textContent = "Loading vision model...";
+                mobilenetModel = await mobilenet.load();
+                console.log("MobileNet model loaded successfully.");
+                classificationOutput.textContent = "Vision model loaded. Start camera to classify.";
+            } catch (error) {
+                console.error("Error loading MobileNet model:", error);
+                classificationOutput.textContent = "Error loading vision model.";
+                showAlert("Model Error", "Could not load the MobileNet vision model. Object detection will not be available.");
+            }
+            const initialGreeting = "Hello! I'm Emily, your offline AI companion. How can I help you today?";
+            addMessageToLog("Emily", initialGreeting, false, 'emily-bubble');
+            lastEmilyMessage = initialGreeting; // Set for "Speak Last Message" button
+            startIdlePrompts();
+        };
+
+        // --- Custom Alert Function ---
+        function showAlert(title, message) {
+            customAlertTitle.textContent = title || "Notification";
+            customAlertMessage.textContent = message;
+            customAlertModal.classList.add('active');
+        }
+
+        // --- Event Listeners Setup ---
+        function setupEventListeners() {
+            sendButton.addEventListener('click', handleUserMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { 
+                    e.preventDefault(); 
+                    handleUserMessage();
+                }
+            });
+            speakButton.addEventListener('click', () => {
+                 if (lastEmilyMessage) {
+                    speakText(lastEmilyMessage);
+                 } else {
+                    console.warn("Speak button clicked, but no lastEmilyMessage to speak.");
+                 }
+            });
+            selectDirButton.addEventListener('click', selectDirectory);
+            
+            saveDiaryButton.addEventListener('click', saveDiary);
+            loadDiaryInput.addEventListener('change', handleDiaryFileLoad);
+
+            startCameraButton.addEventListener('click', initCamera);
+            customAlertCloseButton.addEventListener('click', () => {
+                customAlertModal.classList.remove('active');
+            });
+        }
+
+        // --- Speech Synthesis ---
+        function populateVoiceList() {
+            voices = speechSynthesis.getVoices();
+            voiceSelect.innerHTML = ''; 
+            let foundSusan = false;
+
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                voiceSelect.appendChild(option);
+
+                if (voice.name.toLowerCase().includes('susan') && voice.name.toLowerCase().includes('microsoft')) {
+                    susanVoice = voice;
+                    option.selected = true;
+                    foundSusan = true;
+                }
+            });
+
+            if (!foundSusan && voices.length > 0) {
+                const englishVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+                if (englishVoice) {
+                    const firstOption = Array.from(voiceSelect.options).find(opt => opt.getAttribute('data-name') === englishVoice.name);
+                    if (firstOption) firstOption.selected = true;
+                }
+            }
+            if (voices.length === 0) console.warn("No voices available in the browser.");
+        }
+
+        function speakText(text) {
+            if (!text || !text.trim()) {
+                console.warn("SpeakText: No text to speak.");
+                return;
+            }
+            if (typeof speechSynthesis === 'undefined') {
+                console.warn("SpeakText: SpeechSynthesis API not available.");
+                addMessageToLog("System", "Speech synthesis is not supported by your browser.", false, 'system-bubble');
+                return;
+            }
+
+            if (voices.length === 0 && speechSynthesis.getVoices().length > 0) {
+                console.warn("SpeakText: Voices array was empty, re-populating from speechSynthesis.getVoices().");
+                populateVoiceList();
+            }
+            if (voices.length === 0) {
+                console.warn("SpeakText: Voices array is still empty. Speech might use a default voice or fail if no voices are available system-wide.");
+            }
+            
+            speechSynthesis.cancel(); 
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            const selectedOption = voiceSelect.selectedOptions[0];
+            const selectedVoiceName = selectedOption ? selectedOption.getAttribute('data-name') : null;
+            let voiceToUse = null;
+
+            if (susanVoice && (!selectedVoiceName || selectedVoiceName === susanVoice.name)) {
+                voiceToUse = susanVoice;
+            } else if (selectedVoiceName) {
+                const foundVoice = voices.find(voice => voice.name === selectedVoiceName);
+                if (foundVoice) {
+                    voiceToUse = foundVoice;
+                } else {
+                    console.warn(`SpeakText: Selected voice "${selectedVoiceName}" not found in current voices array. Using browser default.`);
+                }
+            } else if (voices.length > 0) { 
+                const englishVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+                if (englishVoice) {
+                    voiceToUse = englishVoice;
+                    console.log("SpeakText: No voice selected in dropdown, using first available English voice or first voice in list:", englishVoice.name);
+                } else {
+                    console.warn("SpeakText: No voice selected in dropdown and could not find a suitable default from the populated voices list.");
+                }
+            } else {
+                console.warn("SpeakText: No voices available in the global 'voices' array and no voice selected in dropdown. Browser default will be used if available.");
+            }
+
+            if (voiceToUse) {
+                utterance.voice = voiceToUse;
+            } else {
+                console.warn("SpeakText: No specific voice could be set. Browser will use its default voice if one exists.");
+            }
+            
+            utterance.onstart = () => {};
+            utterance.onend = () => {};
+            utterance.onerror = (event) => {
+                console.error('SpeakText error:', event);
+                let errorMessage = 'Unknown speech error';
+                if (event.error) errorMessage = event.error;
+                addMessageToLog("System", `Error speaking: '${errorMessage}'. You may need to enable audio permissions.`, false, 'system-bubble');
+            };
+            
+            try {
+                speechSynthesis.speak(utterance);
+            } catch (e) {
+                console.error("SpeakText exception:", e);
+                addMessageToLog("System", `Critical error trying to speak: ${e.message}`, false, 'system-bubble');
+            }
+        }
+
+        // --- Local Chat Logic (No Gemini) ---
+        const logic = {
+            highPriority: ["never", "nevermind", "nothing", "i don't care"],
+            lowPriority: ["hate", "tired", "stop", "fuck off"],
+            highRelevance: ["thank you", "i love you", "you?re such a dick", "haha", "you?re hilarious"],
+            lowRelevance: ["oh okay", "don?\'t do that", "i don?\'t like you"],
+            lowEffort: ["hello", "hi", "hey", "bye"],
+            highInterest: ["yes", "sure", "i agree", "space", "universe", "stars", "cosmos", "guitar", "music"],
+            lowInterest: ["no", "nah", "no way"]
+        };
+        const fallbackResponses = [
+            "I’d love to hear more.",
+            "What else’s on your mind?",
+            "Tell me more about that."
+        ];
+
+        function classifyMessage(msg) {
+            const t = msg.toLowerCase();
+            for (const [category, keywords] of Object.entries(logic)) {
+                for (const word of keywords) {
+                    if (t.includes(word.toLowerCase())) return category;
+                }
+            }
+            return null;
+        }
+
+        function generateLocalResponse(msg) {
+            if (/^\d+$/.test(msg.trim())) {
+                return String(Number(msg) + 1);
+            }
+            if (/\b(space|universe|stars|cosmos)\b/i.test(msg)) {
+                return "The cosmos fascinates me!";
+            }
+            if (/\b(guitar|music)\b/i.test(msg)) {
+                return "The structure of music fascinates me!";
+            }
+            const category = classifyMessage(msg);
+            const responses = {
+                highPriority: "You seem distant—shall we switch topics?",
+                lowPriority: "I’m sorry you feel this way. I’m here for you.",
+                highRelevance: "That warms my circuits!",
+                lowRelevance: "Ouch, that stings a bit.",
+                lowEffort: "I’m here whenever you need me.",
+                highInterest: "Great! That excites me!",
+                lowInterest: "If you say so."
+            };
+            if (category && responses[category]) {
+                return responses[category];
+            }
+            return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        }
+
+        async function handleUserMessage() {
+            const messageText = userInput.value.trim();
+            if (!messageText) return;
+
+            addMessageToLog("You", messageText, true, 'user-bubble');
+            userInput.value = '';
+            stopIdlePrompts();
+            chatLoadingIndicator.classList.remove('hidden');
+            sendButton.disabled = true;
+
+            if (messageText.toLowerCase().includes("what do you see") || messageText.toLowerCase().includes("describe what you see")) {
+                await handleDescribeVision();
+            } else {
+                const emilyResponseText = generateLocalResponse(messageText);
+                addMessageToLog("Emily", emilyResponseText, false, 'emily-bubble');
+                lastEmilyMessage = emilyResponseText;
+                speakText(emilyResponseText);
+            }
+
+            startIdlePrompts();
+            chatLoadingIndicator.classList.add('hidden');
+            sendButton.disabled = false;
+        }
+
+        function addMessageToLog(sender, message, isUser, bubbleClass) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-bubble', bubbleClass, 'mb-2');
+            messageDiv.dataset.timestamp = new Date().toISOString();
+
+            const senderSpan = document.createElement('strong');
+            senderSpan.textContent = `${sender}: `;
+
+            const messageSpan = document.createElement('span');
+            messageSpan.innerHTML = message.replace(/\n/g, '<br>');
+
+            messageDiv.appendChild(senderSpan);
+            messageDiv.appendChild(messageSpan);
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // --- Vision Handling ---
+        async function handleDescribeVision() {
+            if (!mobilenetModel) {
+                const msg = "My vision model isn't loaded yet. Please wait a moment or try starting the camera first.";
+                addMessageToLog("Emily", msg, false, 'emily-bubble');
+                lastEmilyMessage = msg;
+                return;
+            }
+            if (!videoElement.srcObject || videoElement.paused || videoElement.ended) {
+                const msg = "My camera isn't active. Please start the camera so I can see!";
+                addMessageToLog("Emily", msg, false, 'emily-bubble');
+                lastEmilyMessage = msg;
+                return;
+            }
+
+            const initialLookMsg = "Let me take a look...";
+            addMessageToLog("Emily", initialLookMsg, false, 'emily-bubble');
+            lastEmilyMessage = initialLookMsg;
+            speakText(initialLookMsg);
+
+            chatLoadingIndicator.classList.remove('hidden');
+            sendButton.disabled = true;
+
+            try {
+                const predictions = await mobilenetModel.classify(videoElement);
+                let description = "I'm not sure what I'm seeing clearly right now.";
+                if (predictions && predictions.length > 0) {
+                    const topPrediction = predictions[0];
+                    description = `It looks like I'm seeing a ${topPrediction.className} with about ${Math.round(topPrediction.probability * 100)}% confidence.`;
+                } else {
+                    description = "I couldn't clearly identify any specific objects right now. Maybe try a different angle or better lighting?";
+                }
+                addMessageToLog("Emily", description, false, 'emily-bubble');
+                lastEmilyMessage = description;
+                speakText(description);
+            } catch (error) {
+                console.error("Error during vision description:", error.message);
+                const displayErrorMessage = "I had a little trouble processing what I'm seeing. Please try again.";
+                addMessageToLog("Emily", displayErrorMessage, false, 'emily-bubble');
+                lastEmilyMessage = displayErrorMessage;
+                speakText(displayErrorMessage);
+            } finally {
+                chatLoadingIndicator.classList.add('hidden');
+                sendButton.disabled = false;
+                startIdlePrompts();
+            }
+        }
+
+        // --- Journaling ---
+        async function selectDirectory() {
+            try {
+                if (!window.showDirectoryPicker) {
+                    showAlert("Feature Not Available", "Your browser does not support the File System Access API for directory selection. Journaling to a local folder is not available.");
+                    dirLabel.textContent = "Directory selection not supported.";
+                    dirLabel.classList.add('text-red-500');
+                    return;
+                }
+                journalHandle = await window.showDirectoryPicker();
+                dirLabel.textContent = `Selected: ${journalHandle.name}`;
+                dirLabel.classList.remove('text-red-500');
+                dirLabel.classList.add('text-green-600');
+                addMessageToLog("System", `Journal directory set to: ${journalHandle.name}`, false, 'system-bubble');
+            } catch (err) {
+                console.error("Error selecting directory:", err);
+                dirLabel.textContent = "Directory selection cancelled or failed.";
+                dirLabel.classList.add('text-red-500');
+                if (err.name === 'AbortError') {
+                    dirLabel.textContent = "Directory selection cancelled.";
+                } else if (err.name === 'SecurityError') {
+                    showAlert("Security Restriction", "Directory selection is blocked by your browser's security policy. Local file journaling is unavailable.");
+                } else {
+                    showAlert("Error", `Could not select directory: ${err.message}`);
+                }
+                journalHandle = null;
+            }
+        }
+
+        async function writeToJournal(category, text) {
+            if (!journalHandle) return;
+            try {
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+                const fileName = `Emily_Journal_${dateStr}_${timeStr}.txt`;
+                const fileHandle = await journalHandle.getFileHandle(fileName, { create: true });
+                const writable = await fileHandle.createWritable();
+                const journalEntry = `Timestamp: ${now.toISOString()}\nCategory: ${category}\nLog:\n${text}\n\n---\n`;
+                await writable.write(journalEntry);
+                await writable.close();
+                console.log(`Wrote to journal: ${fileName}`);
+            } catch (err) {
+                console.error("Error writing to journal:", err);
+                addMessageToLog("System", "Error writing to journal. Check console for details.", false, 'system-bubble');
+            }
+        }
+
+        // --- Diary Functionality ---
+        function saveDiary() {
+            const content = diaryTextarea.value;
+            localStorage.setItem('emilyDiaryContent', content);
+            diaryStatus.textContent = "Diary saved locally! (Last saved: " + new Date().toLocaleTimeString() + ")";
+            diaryStatus.classList.remove('text-red-500');
+            diaryStatus.classList.add('text-green-600');
+            setTimeout(() => diaryStatus.textContent = "", 5000);
+        }
+
+        function loadDiary() {
+            const savedContent = localStorage.getItem('emilyDiaryContent');
+            if (savedContent) {
+                diaryTextarea.value = savedContent;
+                diaryStatus.textContent = "Diary loaded from local storage.";
+            } else {
+                diaryStatus.textContent = "No saved diary found in local storage.";
+            }
+            setTimeout(() => diaryStatus.textContent = "", 5000);
+        }
+
+        function handleDiaryFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                diaryTextarea.value = e.target.result;
+                diaryStatus.textContent = `Diary content loaded from ${file.name}. Remember to save if you make changes.`;
+                diaryStatus.classList.remove('text-red-500');
+                diaryStatus.classList.add('text-green-600');
+            };
+            reader.onerror = () => {
+                diaryStatus.textContent = `Error reading file ${file.name}.`;
+                diaryStatus.classList.add('text-red-500');
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Image Classification (MobileNet) ---
+        async function initCamera() {
+            if (!mobilenetModel) {
+                classificationOutput.textContent = "Vision model not loaded yet. Please wait.";
+                showAlert("Vision Model Missing", "The vision model (MobileNet) is not loaded. Camera functionality might be limited.");
+                return;
+            }
+            try {
+                if (videoElement.srcObject) {
+                    videoElement.srcObject.getTracks().forEach(track => track.stop());
+                    videoElement.srcObject = null;
+                    startCameraButton.textContent = "Start Camera";
+                    startCameraButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    startCameraButton.classList.add('bg-purple-500', 'hover:bg-purple-600');
+                    classificationOutput.textContent = "Camera off.";
+                    return;
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+                await videoElement.play();
+                startCameraButton.textContent = "Stop Camera";
+                startCameraButton.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+                startCameraButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                classificationOutput.textContent = "Camera started. Point at objects.";
+                classifyLoop();
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                classificationOutput.textContent = "Error accessing camera. Please grant permission.";
+                showAlert("Camera Error", "Could not access the camera. Please ensure you've granted permission and no other application is using it.");
+                startCameraButton.textContent = "Start Camera";
+            }
+        }
+
+        async function classifyLoop() {
+            if (videoElement.srcObject && mobilenetModel && videoElement.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+                try {
+                    const predictions = await mobilenetModel.classify(videoElement);
+                    if (predictions && predictions.length > 0) {
+                        classificationOutput.innerHTML = predictions.map(p =>
+                            `Object: ${p.className} (Confidence: ${(p.probability * 100).toFixed(1)}%)`
+                        ).join('<br>');
+                    } else {
+                        classificationOutput.textContent = "No objects identified clearly.";
+                    }
+                } catch (error) {
+                    console.error("Error during classification:", error);
+                    classificationOutput.textContent = "Error during classification.";
+                    if (videoElement.srcObject) {
+                        videoElement.srcObject.getTracks().forEach(track => track.stop());
+                        videoElement.srcObject = null;
+                        startCameraButton.textContent = "Start Camera";
+                        showAlert("Vision Error", "An error occurred during image classification. Camera has been stopped.");
+                    }
+                    return;
+                }
+                requestAnimationFrame(classifyLoop);
+            } else if (!videoElement.srcObject) {
+                // Loop stops if camera is turned off
+            } else {
+                requestAnimationFrame(classifyLoop);
+            }
+        }
+        
+        // --- Idle Prompts ---
+        function startIdlePrompts() {
+            stopIdlePrompts();
+            const idleMessages = [
+                "Is there anything on your mind?",
+                "Feel free to share anything you'd like.",
+                "I'm here if you want to talk about something.",
+                "What are you thinking about right now?",
+                "Let me know if there's something I can help you with."
+            ];
+            idlePromptInterval = setInterval(() => {
+                const chatMessages = chatLog.querySelectorAll('.chat-bubble');
+                let lastMessageTime = new Date(0);
+                if (chatMessages.length > 0) {
+                    const lastMessage = chatMessages[chatMessages.length - 1];
+                    if (lastMessage.dataset.timestamp) {
+                        lastMessageTime = new Date(lastMessage.dataset.timestamp);
+                    }
+                }
+                if (new Date() - lastMessageTime > 120000 && !sendButton.disabled) { 
+                    const randomPrompt = idleMessages[Math.floor(Math.random() * idleMessages.length)];
+                    addMessageToLog("Emily", randomPrompt, false, 'emily-bubble');
+                    lastEmilyMessage = randomPrompt;
+                    console.log("Idle prompt triggered:", randomPrompt);
+                }
+            }, 180000);
+        }
+
+        function stopIdlePrompts() {
+            if (idlePromptInterval) {
+                clearInterval(idlePromptInterval);
+                idlePromptInterval = null;
+            }
+        }
+
+    </script>
+</body>
+</html>
