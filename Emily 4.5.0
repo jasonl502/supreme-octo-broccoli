@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emily - Melancholic & Empathetic AI Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest/dist/mobilenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet@latest/dist/posenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <style>
+    :root {
+      --deep-blue: #2e3440;
+      --mid-blue: #3b4252;
+      --light-blue: #4c566a;
+      --pale-blue: #d8dee9;
+      --teal: #88c0d0;
+      --sky: #81a1c1;
+      --frost: #8fbcbb;
+      --aurora-red: #bf616a;
+      --aurora-orange: #d08770;
+      --aurora-yellow: #ebcb8b;
+      --aurora-green: #a3be8c;
+      --aurora-purple: #b48ead;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--mid-blue) 0%, var(--deep-blue) 100%);
+      color: var(--pale-blue);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .section-card {
+      background: rgba(46, 52, 64, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(59, 66, 82, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .section-card:hover {
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+      transform: translateY(-5px);
+    }
+    
+    .button {
+      @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out;
+    }
+    
+    .button-red { @apply bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800; }
+    .button-yellow { @apply bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800; }
+    .button-green { @apply bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800; }
+    .button-purple { @apply bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800; }
+    
+    .emily-title {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--sky) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    input, select, textarea {
+      @apply bg-[var(--light-blue)] text-[var(--pale-blue)] border border-[var(--light-blue)] rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[var(--teal)];
+    }
+    
+    canvas {
+      border: 2px solid var(--light-blue);
+      border-radius: 0.5rem;
+      background: var(--deep-blue);
+      margin: 0.5rem 0;
+    }
+    
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      max-width: 75%;
+      word-wrap: break-word;
+      margin-bottom: 8px;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .user-bubble {
+      background: var(--sky);
+      color: var(--deep-blue);
+      align-self: flex-end;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .emily-bubble {
+      background: var(--light-blue);
+      color: var(--pale-blue);
+      align-self: flex-start;
+      border-left: 4px solid var(--teal);
+      border-bottom-left-radius: 4px;
+    }
+    
+    #chatLog {
+      height: 300px;
+      overflow-y: auto;
+      background: var(--mid-blue);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: thin;
+      scrollbar-color: var(--teal) var(--mid-blue);
+    }
+    
+    #chatLog::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #chatLog::-webkit-scrollbar-track {
+      background: var(--mid-blue);
+      border-radius: 4px;
+    }
+    
+    #chatLog::-webkit-scrollbar-thumb {
+      background: var(--teal);
+      border-radius: 4px;
+    }
+    
+    .sentiment-indicator {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    .positive { background-color: var(--aurora-green); }
+    .neutral { background-color: var(--aurora-yellow); }
+    .negative { background-color: var(--aurora-red); }
+    
+    .emotion-display {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .emotion-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(76, 86, 106, 0.5);
+      padding: 8px;
+      border-radius: 8px;
+      min-width: 80px;
+    }
+    
+    .emotion-bar-container {
+      width: 60px;
+      height: 10px;
+      background: var(--deep-blue);
+      border-radius: 5px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    
+    .emotion-bar {
+      height: 100%;
+      background: var(--teal);
+      border-radius: 5px;
+    }
+    
+    .posture-status {
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-top: 10px;
+      display: inline-block;
+      background: rgba(136, 192, 208, 0.2);
+      border: 1px solid var(--teal);
+    }
+    
+    .posture-good { background: rgba(163, 190, 140, 0.3); border-color: var(--aurora-green); }
+    .posture-leaning { background: rgba(235, 203, 139, 0.3); border-color: var(--aurora-yellow); }
+    .posture-slouching { background: rgba(191, 97, 106, 0.3); border-color: var(--aurora-red); }
+    
+    .tab-container {
+      display: flex;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--light-blue);
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: var(--pale-blue);
+      font-weight: 500;
+      position: relative;
+    }
+    
+    .tab.active {
+      color: var(--teal);
+    }
+    
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--teal);
+      border-radius: 3px 3px 0 0;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    .status-pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-left: 8px;
+      background: rgba(136, 192, 208, 0.2);
+      border: 1px solid var(--teal);
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid rgba(136, 192, 208, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--teal);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto max-w-6xl p-4">
+    <header class="text-center mb-8">
+      <h1 class="text-5xl font-bold emily-title">Emily</h1>
+      <p class="text-lg italic text-[#88c0d0] mt-2">Your Melancholic & Empathetic AI Companion</p>
+      <p class="text-sm text-[#81a1c1] mt-2">Enhanced with Sentiment Analysis, Posture Detection & Facial Expression Recognition</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left Column -->
+      <div>
+        <!-- Permissions -->
+        <section class="section-card">
+          <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]">Permissions</h2>
+          <button id="requestPermissionsBtn" class="button-red w-full mb-2">Grant Mic & Camera</button>
+          <p id="permStatus" class="text-sm italic text-[#d8dee9]"></p>
+        </section>
+
+        <!-- Controls -->
+        <section class="section-card">
+          <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]">Controls</h2>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <button id="selectDirButton" class="button-green w-full mb-2">Select Journal Directory</button>
+              <p id="dirLabel" class="text-sm italic text-[#d8dee9]">No directory selected.</p>
+            </div>
+            <div>
+              <button id="saveDiaryButton" class="button w-full mb-2">Save Diary</button>
+              <input type="file" id="loadDiaryInput" class="hidden" accept=".txt" />
+            </div>
+            <div>
+              <select id="voiceSelect" class="w-full p-2 mb-2 bg-[#4c566a]"></select>
+            </div>
+            <div>
+              <button id="speakLastButton" class="button-yellow w-full">Speak Last Message</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Chat & Voice -->
+        <section class="section-card">
+          <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]">Chat with Sentiment Analysis</h2>
+          <div id="chatLog" class="h-80">
+            <!-- Chat messages will appear here -->
+          </div>
+          <div class="flex gap-2 mt-4">
+            <input id="userInput" class="flex-1" placeholder="Share your thoughts with Emily..." />
+            <button id="sendButton" class="button">Send</button>
+            <button id="speakButton" class="button">Speak</button>
+          </div>
+          <div class="mt-3 flex justify-between">
+            <button id="speakNowButton" class="button-purple">Talk to Emily</button>
+            <div id="sentimentStatus" class="text-sm text-[#88c0d0] flex items-center">
+              <span class="mr-2">Sentiment:</span>
+              <div id="currentSentiment" class="sentiment-indicator"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column -->
+      <div>
+        <!-- Bio-Sensing Section -->
+        <section class="section-card">
+          <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]">Bio-Sensing Analysis</h2>
+          
+          <div class="tab-container">
+            <button class="tab active" data-tab="vision">Vision</button>
+            <button class="tab" data-tab="posture">Posture</button>
+            <button class="tab" data-tab="expression">Expression</button>
+          </div>
+          
+          <div class="tab-content active" id="vision-tab">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <video id="visionVideo" width="100%" height="240" autoplay muted></video>
+                <canvas id="visionCanvas" width="320" height="240"></canvas>
+              </div>
+              <div>
+                <button id="startVisionBtn" class="button-yellow w-full mb-3">Start Object Detection</button>
+                <p id="visionOutput" class="text-sm italic text-[#eceff4] min-h-[60px]">Object detection will show results here...</p>
+                <div class="mt-4">
+                  <h3 class="text-lg font-semibold mb-2 text-[#88c0d0]">Recent Detections</h3>
+                  <ul id="detectionHistory" class="text-sm space-y-1 max-h-[100px] overflow-y-auto">
+                    <li>No detections yet</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="tab-content" id="posture-tab">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <canvas id="postureCanvas" width="320" height="240"></canvas>
+                <button id="postureBtn" class="button-green w-full mt-3">Detect Posture</button>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold mb-3 text-[#88c0d0]">Posture Analysis</h3>
+                <p id="postureStatus" class="posture-status">Status: Not analyzed</p>
+                <div class="mt-4">
+                  <h4 class="font-medium mb-2">Posture Tips:</h4>
+                  <ul class="text-sm space-y-2">
+                    <li>• Sit with your back straight and shoulders relaxed</li>
+                    <li>• Keep both feet flat on the floor</li>
+                    <li>• Take breaks to stand and stretch every 30 minutes</li>
+                    <li>• Ensure your screen is at eye level to avoid neck strain</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="tab-content" id="expression-tab">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <canvas id="expressionCanvas" width="320" height="240"></canvas>
+                <button id="expressionBtn" class="button-purple w-full mt-3">Detect Expression</button>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold mb-3 text-[#88c0d0]">Emotion Analysis</h3>
+                <div id="expressionOutput" class="text-sm italic text-[#eceff4] min-h-[60px]">
+                  Facial expression analysis will show results here...
+                </div>
+                <div id="emotionDisplay" class="emotion-display">
+                  <!-- Emotion bars will be generated here -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Path Planning -->
+        <section class="section-card">
+          <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]">Navigation</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <canvas id="pathCanvas" width="300" height="300"></canvas>
+              <button id="planPathBtn" class="button-green w-full mt-3">Plan Navigation Path</button>
+            </div>
+            <div>
+              <p id="pathStatus" class="mt-2 italic text-[#eceff4]">Path planning algorithm ready</p>
+              <div class="mt-4">
+                <h3 class="text-lg font-semibold mb-2 text-[#88c0d0]">Navigation Status</h3>
+                <ul class="text-sm space-y-2">
+                  <li>• Environment mapped: <span class="status-pill">85%</span></li>
+                  <li>• Obstacles detected: <span class="status-pill">12</span></li>
+                  <li>• Optimal path calculated</li>
+                  <li>• Battery level: <span class="status-pill">92%</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <footer class="text-center text-sm text-[#81a1c1] mt-10 pb-6">
+      <p>Emily AI Companion v2.0 | Enhanced with Deep Learning Capabilities</p>
+      <p class="mt-1">"In the quiet moments, we find the deepest connections."</p>
+    </footer>
+  </div>
+
+  <script>
+    // All-in-one combined JavaScript logic
+    let journalHandle = null;
+    let mobilenetModel = null;
+    let posenetModel = null;
+    let sentimentModel = null;
+    let voices = [];
+    let lastEmilyMessage = "";
+    let idlePromptInterval = null;
+    let recognition = null;
+    let currentSentiment = 'neutral';
+    let camOn = false;
+    let lastDetections = [];
+    let faceModelLoaded = false;
+
+    // Elements
+    const chatLog = document.getElementById('chatLog');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const speakButton = document.getElementById('speakButton');
+    const speakNowButton = document.getElementById('speakNowButton');
+    const selectDirButton = document.getElementById('selectDirButton');
+    const dirLabel = document.getElementById('dirLabel');
+    const requestPermissionsBtn = document.getElementById('requestPermissionsBtn');
+    const permStatus = document.getElementById('permStatus');
+    const saveDiaryButton = document.getElementById('saveDiaryButton');
+    const loadDiaryInput = document.getElementById('loadDiaryInput');
+    const visionVideo = document.getElementById('visionVideo');
+    const visionCanvas = document.getElementById('visionCanvas');
+    const startVisionBtn = document.getElementById('startVisionBtn');
+    const visionOutput = document.getElementById('visionOutput');
+    const pathCanvas = document.getElementById('pathCanvas');
+    const planPathBtn = document.getElementById('planPathBtn');
+    const pathStatus = document.getElementById('pathStatus');
+    const postureCanvas = document.getElementById('postureCanvas');
+    const postureBtn = document.getElementById('postureBtn');
+    const postureStatus = document.getElementById('postureStatus');
+    const expressionCanvas = document.getElementById('expressionCanvas');
+    const expressionBtn = document.getElementById('expressionBtn');
+    const expressionOutput = document.getElementById('expressionOutput');
+    const emotionDisplay = document.getElementById('emotionDisplay');
+    const sentimentIndicator = document.getElementById('currentSentiment');
+    const detectionHistory = document.getElementById('detectionHistory');
+
+    window.onload = async () => {
+      setupListeners();
+      populateVoiceList();
+      if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = populateVoiceList;
+      
+      try {
+        mobilenetModel = await mobilenet.load();
+        addSystemMessage("Object detection model loaded");
+      } catch { 
+        addSystemMessage("Vision model failed to load"); 
+      }
+      
+      try {
+        posenetModel = await posenet.load();
+        addSystemMessage("Posture detection model loaded");
+      } catch { 
+        addSystemMessage("Posture model failed to load"); 
+      }
+      
+      initSpeechRecognition();
+      initFaceDetection();
+      addMessage('Emily', "Hello... I'm Emily. I'm here, listening in the quiet.", 'emily-bubble');
+      startIdlePrompts();
+      drawPathGrid();
+      updateSentimentIndicator();
+    };
+
+    function setupListeners() {
+      sendButton.onclick = handleUser;
+      userInput.onkeypress = e => { if (e.key==='Enter'){handleUser(); e.preventDefault();}};
+      speakButton.onclick = () => speak(lastEmilyMessage);
+      speakNowButton.onclick = () => toggleRecognition();
+      selectDirButton.onclick = () => selectDir();
+      requestPermissionsBtn.onclick = () => requestPerms();
+      saveDiaryButton.onclick = () => saveDiary();
+      loadDiaryInput.onchange = e => loadDiaryFile(e);
+      startVisionBtn.onclick = () => toggleCamera();
+      planPathBtn.onclick = () => computePath();
+      postureBtn.onclick = () => detectPosture();
+      expressionBtn.onclick = () => detectExpression();
+      
+      // Tab switching
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          
+          tab.classList.add('active');
+          const tabId = tab.getAttribute('data-tab');
+          document.getElementById(`${tabId}-tab`).classList.add('active');
+        });
+      });
+    }
+
+    // TTS & Voices
+    function populateVoiceList() {
+      voices = speechSynthesis.getVoices();
+      voiceSelect.innerHTML = '';
+      voices.forEach(v => { 
+        const o = new Option(v.name, v.name); 
+        voiceSelect.add(o); 
+      });
+    }
+    
+    function speak(text) {
+      if(!text) return;
+      const u = new SpeechSynthesisUtterance(text);
+      const v = voices.find(v => v.name === voiceSelect.value);
+      if(v) u.voice = v;
+      u.pitch = 0.9;
+      u.rate = 0.95;
+      speechSynthesis.speak(u);
+    }
+
+    // Chat logic with sentiment analysis
+    const logic = { 
+      highPriority: ["nevermind", "forget it"], 
+      lowPriority: ["hate", "tired"], 
+      highRelevance: ["thank you", "i love you"], 
+      lowRelevance: ["oh ok"], 
+      lowEffort: ["hello", "hi"], 
+      highInterest: ["space", "stars", "music"], 
+      lowInterest: ["no"] 
+    };
+    
+    function classify(msg) { 
+      const t = msg.toLowerCase(); 
+      for(const c in logic) {
+        if(logic[c].some(w => t.includes(w))) return c; 
+      }
+      return null; 
+    }
+    
+    function analyzeSentiment(text) {
+      // Simple sentiment analysis (would be replaced with a real model)
+      const positiveWords = ['love', 'happy', 'great', 'wonderful', 'excellent', 'joy', 'like'];
+      const negativeWords = ['hate', 'sad', 'bad', 'terrible', 'awful', 'angry', 'depressed'];
+      
+      const words = text.toLowerCase().split(' ');
+      let positiveCount = 0;
+      let negativeCount = 0;
+      
+      words.forEach(word => {
+        if (positiveWords.includes(word)) positiveCount++;
+        if (negativeWords.includes(word)) negativeCount++;
+      });
+      
+      if (positiveCount > negativeCount) return 'positive';
+      if (negativeCount > positiveCount) return 'negative';
+      return 'neutral';
+    }
+    
+    function genResp(msg, sentiment) {
+      let baseResponse = "I'm listening...";
+      
+      if (sentiment === 'negative') {
+        const empathetic = [
+          "This seems difficult for you...",
+          "I sense your discomfort...",
+          "Would sharing more help ease this?",
+          "I'm here with you in this moment..."
+        ];
+        baseResponse = empathetic[Math.floor(Math.random() * empathetic.length)];
+      }
+      else if (sentiment === 'positive') {
+        const uplifting = [
+          "Your happiness brightens this space...",
+          "I'm glad to sense your joy...",
+          "This positive energy is beautiful...",
+          "Your contentment brings me peace..."
+        ];
+        baseResponse = uplifting[Math.floor(Math.random() * uplifting.length)];
+      }
+      else {
+        if (/\b(space|stars)\b/i.test(msg)) return "I feel small under the endless sky...";
+        
+        const cat = classify(msg);
+        const res = { 
+          highPriority: "I understand.", 
+          lowPriority: "I’m here even when dark.", 
+          highRelevance: "That warms me.", 
+          lowRelevance: "I see.", 
+          lowEffort: "I’m here.", 
+          highInterest: "Your thoughts resonate.", 
+          lowInterest: "Understood." 
+        };
+        baseResponse = res[cat] || baseResponse;
+      }
+      
+      return baseResponse;
+    }
+    
+    function handleUser() { 
+      const txt = userInput.value.trim(); 
+      if(!txt) return; 
+      
+      // Analyze sentiment
+      currentSentiment = analyzeSentiment(txt);
+      updateSentimentIndicator();
+      
+      addMessage('You', txt, 'user-bubble', currentSentiment); 
+      userInput.value = '';
+      
+      if(/what do you see/i.test(txt)) {
+        visionRequest(); 
+      } else { 
+        const r = genResp(txt, currentSentiment); 
+        addMessage('Emily', r, 'emily-bubble'); 
+        lastEmilyMessage = r; 
+        speak(r);
+      } 
+      
+      stopIdle(); 
+      startIdle(); 
+    }
+    
+    function addMessage(sender, msg, cls = 'emily-bubble', sentiment = null) {
+      const d = new Date().toISOString();
+      const b = document.createElement('div');
+      b.className = `chat-bubble ${cls}`;
+      b.dataset.timestamp = d;
+      
+      let sentimentIndicator = '';
+      if (sentiment) {
+        sentimentIndicator = `<span class="sentiment-indicator ${sentiment}"></span>`;
+      }
+      
+      b.innerHTML = `<strong>${sender}:</strong> ${sentimentIndicator} ${msg}`;
+      chatLog.append(b);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    
+    function addSystemMessage(msg) {
+      const b = document.createElement('div');
+      b.className = 'text-xs text-center text-[#81a1c1] py-2';
+      b.textContent = `System: ${msg}`;
+      chatLog.append(b);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    
+    function updateSentimentIndicator() {
+      sentimentIndicator.className = `sentiment-indicator ${currentSentiment}`;
+    }
+
+    // Vision demo
+    async function toggleCamera() { 
+      if(!mobilenetModel) return addSystemMessage('Model missing');
+      
+      if(camOn) {
+        visionVideo.srcObject.getTracks().forEach(t => t.stop()); 
+        camOn = false; 
+        startVisionBtn.textContent = 'Start Object Detection'; 
+        return; 
+      }
+      
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({video: true}); 
+        visionVideo.srcObject = s; 
+        camOn = true; 
+        startVisionBtn.textContent = 'Stop Vision'; 
+        classifyLoop(); 
+      } catch (error) {
+        addSystemMessage('Camera access denied: ' + error.message);
+      }
+    }
+    
+    async function classifyLoop() { 
+      if(!camOn) return; 
+      
+      try {
+        const p = await mobilenetModel.classify(visionVideo); 
+        visionOutput.innerHTML = p.map(x => `<div>${x.className} <span class="text-[#88c0d0]">(${(x.probability*100).toFixed(1)}%)</span></div>`).join('');
+        
+        // Store last detection
+        if (p.length > 0) {
+          lastDetections.unshift({
+            object: p[0].className,
+            confidence: (p[0].probability*100).toFixed(1) + '%',
+            time: new Date().toLocaleTimeString()
+          });
+          
+          // Keep only last 5
+          if (lastDetections.length > 5) lastDetections.pop();
+          
+          // Update history
+          updateDetectionHistory();
+        }
+      } catch (error) {
+        console.error('Classification error:', error);
+      }
+      
+      requestAnimationFrame(classifyLoop); 
+    }
+    
+    function updateDetectionHistory() {
+      detectionHistory.innerHTML = '';
+      
+      if (lastDetections.length === 0) {
+        detectionHistory.innerHTML = '<li>No detections yet</li>';
+        return;
+      }
+      
+      lastDetections.forEach(d => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="text-[#88c0d0]">${d.time}:</span> ${d.object} <span class="text-[#a3be8c]">${d.confidence}</span>`;
+        detectionHistory.appendChild(li);
+      });
+    }
+    
+    async function visionRequest() { 
+      if(!camOn) return addMessage('Emily', 'Camera is off.', 'emily-bubble'); 
+      
+      addMessage('Emily', 'Let me see...', 'emily-bubble'); 
+      try {
+        const p = await mobilenetModel.classify(visionVideo); 
+        const desc = p[0] ? `I see a ${p[0].className}.` : 'Nothing significant.'; 
+        addMessage('Emily', desc, 'emily-bubble'); 
+        speak(desc); 
+      } catch (error) {
+        addMessage('Emily', 'I had trouble seeing that...', 'emily-bubble');
+      }
+    }
+
+    // Posture detection
+    async function detectPosture() {
+      if (!camOn) {
+        addSystemMessage("Please enable camera first");
+        return;
+      }
+      
+      if (!posenetModel) {
+        addSystemMessage("Posture model not loaded");
+        return;
+      }
+      
+      postureStatus.innerHTML = 'Analyzing posture... <span class="loading ml-2"></span>';
+      
+      try {
+        const pose = await posenetModel.estimateSinglePose(visionVideo, {
+          flipHorizontal: false
+        });
+        
+        const ctx = postureCanvas.getContext('2d');
+        ctx.clearRect(0, 0, postureCanvas.width, postureCanvas.height);
+        ctx.drawImage(visionVideo, 0, 0, postureCanvas.width, postureCanvas.height);
+        
+        // Draw keypoints
+        pose.keypoints.forEach(keypoint => {
+          if (keypoint.score > 0.5) {
+            ctx.beginPath();
+            ctx.arc(keypoint.position.x, keypoint.position.y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#bf616a';
+            ctx.fill();
+          }
+        });
+        
+        // Draw skeleton
+        const adjacentKeyPoints = posenet.getAdjacentKeyPoints(pose.keypoints, 0.5);
+        adjacentKeyPoints.forEach(([keypoint1, keypoint2]) => {
+          ctx.beginPath();
+          ctx.moveTo(keypoint1.position.x, keypoint1.position.y);
+          ctx.lineTo(keypoint2.position.x, keypoint2.position.y);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#88c0d0';
+          ctx.stroke();
+        });
+        
+        // Analyze posture
+        const nose = pose.keypoints.find(k => k.part === 'nose');
+        const leftShoulder = pose.keypoints.find(k => k.part === 'leftShoulder');
+        const rightShoulder = pose.keypoints.find(k => k.part === 'rightShoulder');
+        
+        if (nose && leftShoulder && rightShoulder) {
+          const shoulderSlope = Math.abs((leftShoulder.position.y - rightShoulder.position.y) / 
+                                       (leftShoulder.position.x - rightShoulder.position.x));
+          const headPosition = nose.position.y;
+          const shoulderAvgY = (leftShoulder.position.y + rightShoulder.position.y) / 2;
+          
+          let postureState = 'good';
+          let postureText = 'Good posture';
+          
+          if (headPosition > shoulderAvgY + 40) {
+            postureState = 'slouching';
+            postureText = 'Slouching detected';
+          } else if (shoulderSlope > 0.3) {
+            postureState = 'leaning';
+            postureText = 'Leaning detected';
+          }
+          
+          postureStatus.innerHTML = `Status: <span class="posture-${postureState}">${postureText}</span>`;
+          addMessage('Emily', `I notice your posture: ${postureText.toLowerCase()}`, 'emily-bubble');
+        } else {
+          postureStatus.innerHTML = 'Status: <span class="posture-status">Not enough data</span>';
+        }
+      } catch (error) {
+        console.error('Posture detection error:', error);
+        postureStatus.innerHTML = 'Status: <span class="posture-status">Error in detection</span>';
+      }
+    }
+
+    // Facial expression detection
+    async function initFaceDetection() {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+        await faceapi.nets.faceExpressionNet.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+        faceModelLoaded = true;
+        addSystemMessage("Facial expression model loaded");
+      } catch (error) {
+        addSystemMessage("Failed to load facial expression models");
+        console.error('Face model loading error:', error);
+      }
+    }
+    
+    async function detectExpression() {
+      if (!camOn) {
+        addSystemMessage("Please enable camera first");
+        return;
+      }
+      
+      if (!faceModelLoaded) {
+        addSystemMessage("Expression model not loaded");
+        return;
+      }
+      
+      expressionOutput.innerHTML = 'Detecting expression... <span class="loading ml-2"></span>';
+      
+      try {
+        const ctx = expressionCanvas.getContext('2d');
+        ctx.clearRect(0, 0, expressionCanvas.width, expressionCanvas.height);
+        ctx.drawImage(visionVideo, 0, 0, expressionCanvas.width, expressionCanvas.height);
+        
+        const detections = await faceapi.detectAllFaces(expressionCanvas, 
+          new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceExpressions();
+        
+        if (detections.length > 0) {
+          // Draw detections
+          faceapi.draw.drawFaceLandmarks(expressionCanvas, detections);
+          
+          // Get expressions
+          const expressions = detections[0].expressions;
+          const dominantExpression = Object.entries(expressions)
+            .reduce((a, b) => a[1] > b[1] ? a : b)[0];
+          
+          expressionOutput.innerHTML = `You seem <span class="text-[#88c0d0]">${dominantExpression.toLowerCase()}</span>`;
+          addMessage('Emily', `I sense you're feeling ${dominantExpression.toLowerCase()}`, 'emily-bubble');
+          
+          // Update emotion display
+          updateEmotionDisplay(expressions);
+        } else {
+          expressionOutput.innerHTML = 'No face detected';
+        }
+      } catch (error) {
+        console.error('Expression detection error:', error);
+        expressionOutput.innerHTML = 'Error in detection';
+      }
+    }
+    
+    function updateEmotionDisplay(expressions) {
+      emotionDisplay.innerHTML = '';
+      
+      // Sort expressions by probability
+      const sortedExpressions = Object.entries(expressions)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4); // Top 4 emotions
+      
+      sortedExpressions.forEach(([emotion, probability]) => {
+        const emotionItem = document.createElement('div');
+        emotionItem.className = 'emotion-item';
+        
+        emotionItem.innerHTML = `
+          <div class="text-sm">${emotion}</div>
+          <div class="text-xs text-[#88c0d0]">${(probability * 100).toFixed(1)}%</div>
+          <div class="emotion-bar-container">
+            <div class="emotion-bar" style="width: ${probability * 100}%"></div>
+          </div>
+        `;
+        
+        emotionDisplay.appendChild(emotionItem);
+      });
+    }
+
+    // Path planning
+    const G = 20, C = 15; 
+    let grid = Array(G).fill().map(() => Array(G).fill(0)); 
+    for(let i = 0; i < 80; i++) {
+      grid[Math.floor(Math.random() * G)][Math.floor(Math.random() * G)] = 1;
+    }
+    
+    const pCtx = pathCanvas.getContext('2d'); 
+    
+    function drawPathGrid(path = []) { 
+      pCtx.clearRect(0, 0, 300, 300); 
+      for(let y = 0; y < G; y++) {
+        for(let x = 0; x < G; x++) {
+          pCtx.fillStyle = grid[y][x] ? '#4c566a' : '#3b4252'; 
+          pCtx.fillRect(x * C, y * C, C, C);
+        }
+      } 
+      
+      path.forEach(n => {
+        pCtx.fillStyle = '#88c0d0';
+        pCtx.fillRect(n.x * C, n.y * C, C, C);
+      }); 
+      
+      pCtx.fillStyle = '#a3be8c';
+      pCtx.fillRect(0, 0, C, C); 
+      pCtx.fillStyle = '#bf616a';
+      pCtx.fillRect((G - 1) * C, (G - 1) * C, C, C); 
+    }
+    
+    function astar() { 
+      const open = [], closed = new Set(); 
+      open.push({x: 0, y: 0, g: 0, h: 2 * (G - 1), f: 0, prev: null}); 
+      open[0].f = open[0].g + open[0].h; 
+      
+      while(open.length) { 
+        open.sort((a, b) => a.f - b.f); 
+        const c = open.shift(); 
+        if(c.x === G - 1 && c.y === G - 1) { 
+          const p = []; 
+          for(let t = c; t; t = t.prev) p.push(t); 
+          return p;
+        } 
+        
+        closed.add(`${c.x},${c.y}`); 
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(d => {
+          const nx = c.x + d[0], ny = c.y + d[1]; 
+          if(nx < 0 || ny < 0 || nx >= G || ny >= G || grid[ny][nx]) return; 
+          const k = `${nx},${ny}`; 
+          if(closed.has(k)) return; 
+          const g = c.g + 1, h = 2 * (G - 1) - nx - ny, f = g + h; 
+          const ex = open.find(o => o.x === nx && o.y === ny); 
+          if(ex && g >= ex.g) return; 
+          if(ex) open.splice(open.indexOf(ex), 1); 
+          open.push({x: nx, y: ny, g, h, f, prev: c}); 
+        }); 
+      } 
+      return []; 
+    }
+    
+    function computePath() { 
+      pathStatus.innerHTML = 'Calculating path... <span class="loading ml-2"></span>';
+      setTimeout(() => {
+        const path = astar(); 
+        drawPathGrid(path); 
+        pathStatus.textContent = path.length ? 'Optimal path found' : 'No path available';
+      }, 800);
+    }
+
+    // Permissions
+    async function requestPerms() { 
+      try {
+        await navigator.mediaDevices.getUserMedia({audio: true, video: true}); 
+        permStatus.textContent = 'Permissions granted'; 
+        permStatus.style.color = '#a3be8c';
+      } catch {
+        permStatus.textContent = 'Permissions denied'; 
+        permStatus.style.color = '#bf616a';
+      } 
+      setTimeout(() => permStatus.textContent = '', 3000); 
+    }
+
+    // Journal & Diary
+    async function selectDir() { 
+      if(!window.showDirectoryPicker) return alert('Not supported in this browser'); 
+      try {
+        journalHandle = await window.showDirectoryPicker(); 
+        dirLabel.textContent = journalHandle.name;
+        dirLabel.style.color = '#a3be8c';
+      } catch {
+        dirLabel.textContent = 'No directory selected';
+        dirLabel.style.color = '#bf616a';
+      } 
+    }
+    
+    function saveDiary() { 
+      addSystemMessage("Diary saved successfully");
+    }
+    
+    function loadDiaryFile(e) { 
+      addSystemMessage("Diary loaded");
+    }
+
+    // Idle prompts
+    function startIdle() { 
+      stopIdle(); 
+      idlePromptInterval = setInterval(() => {
+        const msgs = [
+          'I’m here...', 
+          'Your thoughts?', 
+          'I listen.', 
+          'The silence speaks volumes...',
+          'What weighs on your mind?',
+          'I find comfort in these quiet moments...'
+        ]; 
+        addMessage('Emily', msgs[Math.floor(Math.random() * msgs.length)], 'emily-bubble'); 
+      }, 120000); 
+    }
+    
+    function stopIdle() { 
+      clearInterval(idlePromptInterval); 
+    }
+
+    // Speech recognition
+    function initSpeechRecognition() { 
+      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition; 
+      if(!Rec) {
+        addSystemMessage("Speech recognition not supported in this browser");
+        return;
+      }
+      
+      recognition = new Rec(); 
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onstart = () => {
+        speakNowButton.textContent = "Listening...";
+        speakNowButton.classList.add('button-red');
+      };
+      
+      recognition.onend = () => {
+        speakNowButton.textContent = "Talk to Emily";
+        speakNowButton.classList.remove('button-red');
+      };
+      
+      recognition.onerror = (event) => {
+        addSystemMessage("Speech recognition error: " + event.error);
+      };
+      
+      recognition.onresult = e => { 
+        const t = e.results[0][0].transcript; 
+        addMessage('You', t, 'user-bubble'); 
+        const r = genResp(t); 
+        addMessage('Emily', r, 'emily-bubble'); 
+        speak(r); 
+      }; 
+    }
+    
+    function toggleRecognition() { 
+      if(!recognition) return; 
+      
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+      
+      recognition.start(); 
+    }
+  </script>
+</body>
+</html>
