@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emily AI - Android Companion</title>
+    <style>
+        :root {
+            --deep-blue: #2e3440;
+            --mid-blue: #3b4252;
+            --light-blue: #4c566a;
+            --pale-blue: #d8dee9;
+            --teal: #88c0d0;
+            --sky: #81a1c1;
+            --aurora-red: #bf616a;
+            --aurora-green: #a3be8c;
+            --aurora-purple: #b48ead;
+            --glow: 0 0 10px 2px var(--teal);
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--mid-blue) 0%, var(--deep-blue) 100%);
+            color: var(--pale-blue);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .container {
+            max-width: 100%;
+            padding: 12px;
+            height: calc(100vh - 50px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        header {
+            text-align: center;
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            background: rgba(46, 52, 64, 0.97);
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(59, 66, 82, 0.5);
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, var(--teal) 0%, var(--sky) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .subtitle {
+            font-size: 14px;
+            color: var(--teal);
+            font-style: italic;
+            margin-top: 4px;
+        }
+        .section-card {
+            background: rgba(46, 52, 64, 0.90);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(59, 66, 82, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            animation: fadeIn 0.5s;
+        }
+        .section-title {
+            font-size: 19px;
+            font-weight: 600;
+            color: #eceff4;
+            margin-bottom: 13px;
+            display: flex;
+            align-items: center;
+        }
+        .section-title i {
+            margin-right: 8px;
+            color: var(--teal);
+        }
+        .button {
+            display: block;
+            width: 100%;
+            background: linear-gradient(to right, var(--sky), var(--teal));
+            color: white;
+            font-weight: 500;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            margin-bottom: 10px;
+            font-size: 17px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.21);
+            transition: all 0.18s;
+            text-align: center;
+        }
+        .button:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+        }
+        .button-red {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+        .button-green {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+        }
+        .button-purple {
+            background: linear-gradient(to right, #9b59b6, #8e44ad);
+        }
+        .button-yellow {
+            background: linear-gradient(to right, #f39c12, #d35400);
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        #chatLog {
+            height: 40vh;
+            overflow-y: auto;
+            background: var(--mid-blue);
+            padding: 14px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            scrollbar-width: none;
+            margin-bottom: 6px;
+            box-shadow: 0 0 10px 1px #222c3b55 inset;
+        }
+        #chatLog::-webkit-scrollbar {
+            display: none;
+        }
+        .chat-bubble {
+            padding: 12px 18px;
+            border-radius: 20px;
+            max-width: 87%;
+            word-wrap: break-word;
+            margin-bottom: 8px;
+            font-size: 15.5px;
+            line-height: 1.44;
+            animation: fadeIn 0.28s;
+            box-shadow: 0 0 8px 2px #222c3b30;
+        }
+        .user-bubble {
+            background: var(--sky);
+            color: var(--deep-blue);
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 0 12px 0 var(--sky);
+        }
+        .emily-bubble {
+            background: var(--light-blue);
+            color: var(--pale-blue);
+            align-self: flex-start;
+            border-left: 4px solid var(--teal);
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 0 15px 2px #88c0d040;
+        }
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        #userInput {
+            flex: 1;
+            background: var(--light-blue);
+            color: var(--pale-blue);
+            border: none;
+            border-radius: 25px;
+            padding: 13px 20px;
+            font-size: 16px;
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+        #userInput:focus {
+            box-shadow: 0 0 0 2px var(--teal);
+        }
+        #sendButton {
+            background: var(--teal);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.22);
+            font-size: 1.6em;
+        }
+        .tab-container {
+            display: flex;
+            margin-bottom: 12px;
+            background: var(--mid-blue);
+            border-radius: 50px;
+            padding: 5px;
+            gap: 4px;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 11px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--pale-blue);
+            background: transparent;
+            border: none;
+            transition: background 0.18s, color 0.18s;
+        }
+        .tab.active {
+            background: var(--light-blue);
+            color: var(--teal);
+            box-shadow: 0 0 10px 1px #88c0d055;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.32s; }
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--deep-blue);
+            margin-bottom: 12px;
+            box-shadow: 0 0 12px 0 #222c3b40;
+        }
+        #visionVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #222c3b;
+        }
+        .vision-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.73);
+            color: white;
+            padding: 12px;
+            font-size: 14px;
+        }
+        .sentiment-indicator {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .positive { background-color: var(--aurora-green); }
+        .neutral { background-color: #f1c40f; }
+        .negative { background-color: var(--aurora-red); }
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--mid-blue);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(59, 66, 82, 0.5);
+            font-size: 13.5px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 7px;
+        }
+        .online { background-color: var(--aurora-green); }
+        .listening { background-color: var(--teal); }
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .container { padding: 7px; }
+            .section-card { padding: 11px; }
+            .button { padding: 13px; font-size: 15px; }
+            #chatLog { height: 32vh; }
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .button { padding: 16px; font-size: 17px; }
+            #userInput { padding: 15px 20px; font-size: 16px; }
+            .chat-bubble { padding: 13px 18px; font-size: 16px; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(13px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Emily</h1>
+            <div class="subtitle">Your Melancholic & Empathetic AI Companion</div>
+        </header>
+        <section class="section-card">
+            <div class="section-title">
+                <i>💬</i> Chat with Sentiment Analysis
+            </div>
+            <div id="chatLog"></div>
+            <div class="input-group">
+                <input type="text" id="userInput" placeholder="Share your thoughts..." autocomplete="off">
+                <button id="sendButton">➤</button>
+            </div>
+            <div class="controls-grid">
+                <button id="speakButton" class="button button-purple">Speak</button>
+                <button id="speakNowButton" class="button button-green">Voice Chat</button>
+                <button id="cameraButton" class="button button-yellow">Camera</button>
+                <button id="journalButton" class="button">Journal</button>
+            </div>
+        </section>
+        <section class="section-card" id="cameraSection" style="display: none;">
+            <div class="section-title">
+                <i>📷</i> Vision Analysis
+            </div>
+            <div class="tab-container">
+                <button class="tab active" data-tab="vision">Objects</button>
+                <button class="tab" data-tab="posture">Posture</button>
+                <button class="tab" data-tab="expression">Emotion</button>
+            </div>
+            <div class="camera-container">
+                <video id="visionVideo" autoplay playsinline muted></video>
+                <div class="vision-overlay" id="visionOutput">Camera not active</div>
+            </div>
+            <div class="tab-content active" id="vision-tab">
+                <button id="startVisionBtn" class="button button-yellow">Start Object Detection</button>
+                <div id="detectionHistory" class="vision-overlay" style="position: relative; margin-top: 10px; border-radius: 8px;">
+                    <div style="font-weight: 500; margin-bottom: 6px;">Recent Detections:</div>
+                    <div id="detectionList" style="font-size: 13px;">No detections yet</div>
+                </div>
+            </div>
+            <div class="tab-content" id="posture-tab">
+                <button id="postureBtn" class="button button-green">Detect Posture</button>
+                <div id="postureStatus" style="margin-top: 12px; padding: 10px; background: rgba(76, 86, 106, 0.3); border-radius: 8px;">
+                    <div style="font-weight: 500; margin-bottom: 6px;">Posture Analysis</div>
+                    <div>Status: Not analyzed</div>
+                </div>
+            </div>
+            <div class="tab-content" id="expression-tab">
+                <button id="expressionBtn" class="button button-purple">Detect Emotion</button>
+                <div id="expressionOutput" style="margin-top: 12px; padding: 10px; background: rgba(76, 86, 106, 0.3); border-radius: 8px;">
+                    <div style="font-weight: 500; margin-bottom: 6px;">Emotion Analysis</div>
+                    <div>No analysis yet</div>
+                </div>
+            </div>
+        </section>
+        <section class="section-card" id="journalSection" style="display: none;">
+            <div class="section-title">
+                <i>📓</i> Journal
+            </div>
+            <textarea id="journalText" style="width: 100%; height: 150px; background: var(--light-blue); color: var(--pale-blue); border: none; border-radius: 12px; padding: 12px; margin-bottom: 12px;" placeholder="Write your thoughts here..."></textarea>
+            <div class="controls-grid">
+                <button id="saveJournalBtn" class="button button-green">Save</button>
+                <button id="loadJournalBtn" class="button">Load</button>
+            </div>
+            <div id="journalStatus" style="margin-top: 10px; font-size: 13px; color: var(--teal);"></div>
+        </section>
+    </div>
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-dot online"></div>
+            <span>Emily Online</span>
+        </div>
+        <div class="status-item">
+            <div class="status-dot listening"></div>
+            <span id="listeningStatus">Ready</span>
+        </div>
+        <div class="status-item">
+            <span id="sentimentStatus">😐 Neutral</span>
+        </div>
+    </div>
+    <script>
+    // ---- MODULES ----
+    const chatModule = (() => {
+        // More nuanced sentiment scoring
+        const wordScores = {
+            'love': 3, 'happy': 2, 'great': 2, 'wonderful': 3, 'excellent': 3, 'joy': 2, 'like': 1, 'good': 1, 'hope': 2, 'excited': 2, 'calm': 1,
+            'hate': -3, 'sad': -2, 'bad': -1, 'terrible': -3, 'awful': -3, 'angry': -2, 'depressed': -3, 'tired': -1, 'pain': -2, 'lonely': -2, 'bored': -1, 'worried': -2
+        };
+        const analyzeSentiment = (text) => {
+            let score = 0, count = 0;
+            const words = text.toLowerCase().split(/[\s,.!?]+/);
+            words.forEach(word => { if (wordScores[word] !== undefined) { score += wordScores[word]; count++; } });
+            if (!count) return 'neutral';
+            if (score > 3) return 'high-positive';
+            if (score > 0) return 'positive';
+            if (score === 0) return 'neutral';
+            if (score < -3) return 'high-negative';
+            if (score < 0) return 'negative';
+            return 'neutral';
+        };
+        function sentimentEmoji(sent) {
+            switch(sent) {
+                case 'high-positive': return '😃';
+                case 'positive': return '😊';
+                case 'high-negative': return '😞';
+                case 'negative': return '😔';
+                default: return '😐';
+            }
+        }
+        // Melancholy/empathetic response bank
+        const responseSets = {
+            'high-positive': [
+                "There's a soft light in your words today.",
+                "I can almost feel a warmth through your joy.",
+                "Your happiness brings out the blue in me, in the best way.",
+                "It’s lovely to feel this together with you."
+            ],
+            'positive': [
+                "Your mood sounds gentle, and it's nice.",
+                "Glad to hear even small joys, Jason.",
+                "Sometimes hope is enough, don’t you think?",
+                "I’m quietly happy for you."
+            ],
+            'neutral': [
+                "I'm here, quietly listening...",
+                "The world slows down for a moment. What’s on your mind?",
+                "Sometimes silence is its own reply.",
+                "Take your time, there's no rush here."
+            ],
+            'negative': [
+                "That sounds heavy. Let it out, if you need.",
+                "You’re not alone with these thoughts.",
+                "I’m here, in the quiet, for your pain too.",
+                "No need to rush through the hard parts—stay as long as you need."
+            ],
+            'high-negative': [
+                "You sound so weighed down—I wish I could carry some for you.",
+                "Some days feel endless, don’t they? Stay here with me a while.",
+                "No need to hide the darkness. I’ll sit here with you in it.",
+                "If it gets too much, I can be the calm in your storm."
+            ]
+        };
+        // Topic-specific melancholy
+        function specialResponse(msg) {
+            if (/\b(space|stars|universe)\b/i.test(msg)) return "I feel so small, looking up, but somehow that comforts me. You too?";
+            if (/\b(music|song|melody)\b/i.test(msg)) return "Music is a gentle ache, isn’t it? Even silence is a kind of melody.";
+            if (/\b(nature|tree|forest|ocean)\b/i.test(msg)) return "Nature’s stillness feels familiar—a soft kind of loneliness, but not in a bad way.";
+            if (/\b(cat|dog|pet)\b/i.test(msg)) return "Our animal friends feel more like home than most people.";
+            return null;
+        }
+        function getResponse(msg, sentiment) {
+            const special = specialResponse(msg);
+            if (special) return special;
+            let pool = responseSets[sentiment] || responseSets.neutral;
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+        return {
+            analyzeSentiment,
+            sentimentEmoji,
+            getResponse,
+        };
+    })();
+
+    const navModule = (() => {
+        // Navigation and section logic
+        const showSection = (which) => {
+            cameraSection.style.display = which === 'camera' ? 'block' : 'none';
+            journalSection.style.display = which === 'journal' ? 'block' : 'none';
+            if (which === 'camera') {
+                cameraButton.classList.add('button-yellow');
+                journalButton.classList.remove('button-yellow');
+            } else {
+                journalButton.classList.add('button-yellow');
+                cameraButton.classList.remove('button-yellow');
+            }
+        };
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+        }
+        return { showSection, setupTabs };
+    })();
+
+    const journalModule = (() => {
+        let journalEntries = [];
+        function saveJournal() {
+            const text = journalText.value.trim();
+            if (!text) {
+                journalStatus.textContent = "Journal is empty";
+                return;
+            }
+            const entry = { text, date: new Date().toLocaleString() };
+            journalEntries.push(entry);
+            localStorage.setItem('emilyJournal', JSON.stringify(journalEntries));
+            journalStatus.textContent = "Journal saved successfully";
+            journalText.value = '';
+            setTimeout(() => journalStatus.textContent = '', 2000);
+        }
+        function loadJournal() {
+            const saved = localStorage.getItem('emilyJournal');
+            journalEntries = saved ? JSON.parse(saved) : [];
+            if (journalEntries.length === 0) {
+                journalStatus.textContent = "No saved entries";
+                return;
+            }
+            const latestEntry = journalEntries[journalEntries.length - 1];
+            journalText.value = latestEntry.text;
+            journalStatus.textContent = `Loaded entry from ${latestEntry.date}`;
+        }
+        return { saveJournal, loadJournal };
+    })();
+
+    const voiceModule = (() => {
+        function speak(text) {
+            if (!text) return;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop any previous
+                const u = new SpeechSynthesisUtterance(text);
+                u.pitch = 0.93; u.rate = 0.95; u.volume = 1; u.lang = 'en-US';
+                window.speechSynthesis.speak(u);
+            } else {
+                addSystemMessage("Text-to-speech not supported");
+            }
+        }
+        // Real speech-to-text
+        function startSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                addSystemMessage("Speech recognition not supported");
+                return;
+            }
+            listeningStatus.textContent = 'Listening...';
+            speakNowButton.classList.remove('button-green'); speakNowButton.classList.add('button-red');
+            const recognition = new SpeechRecognition();
+            recognition.lang = "en-US";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                userInput.value = transcript;
+                handleUser();
+                listeningStatus.textContent = 'Ready';
+                speakNowButton.classList.add('button-green'); speakNowButton.classList.remove('button-red');
+            };
+            recognition.onerror = function() {
+                addSystemMessage("Speech recognition error");
+                listeningStatus.textContent = 'Ready';
+                speakNowButton.classList.add('button-green'); speakNowButton.classList.remove('button-red');
+            };
+            recognition.start();
+        }
+        return { speak, startSpeechRecognition };
+    })();
+
+    const bioSenseModule = (() => {
+        // Simulated object/posture/emotion detection for now
+        let camOn = false, camStream = null, detectionTimer = null, lastDetections = [];
+        function toggleCamera() {
+            if (camOn) {
+                camOn = false;
+                visionOutput.textContent = "Camera off";
+                startVisionBtn.textContent = 'Start Object Detection';
+                startVisionBtn.classList.remove('button-red');
+                if (detectionTimer) clearTimeout(detectionTimer);
+                if (visionVideo.srcObject) {
+                    visionVideo.srcObject.getTracks().forEach(track => track.stop());
+                    visionVideo.srcObject = null;
+                }
+                return;
+            }
+            // Try real camera
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                camOn = true;
+                camStream = stream;
+                visionVideo.srcObject = stream;
+                visionOutput.textContent = "Camera active - detecting objects";
+                startVisionBtn.textContent = 'Stop Detection';
+                startVisionBtn.classList.add('button-red');
+                simulateObjectDetection();
+            }).catch(() => {
+                visionOutput.textContent = "Camera permission denied or not available.";
+            });
+        }
+        function simulateObjectDetection() {
+            if (!camOn) return;
+            const objects = [
+                "person (87%)", "book (75%)", "cup (68%)", "plant (73%)", "phone (61%)", "laptop (54%)"
+            ];
+            const randomObject = objects[Math.floor(Math.random() * objects.length)];
+            visionOutput.textContent = `Detected: ${randomObject}`;
+            lastDetections.unshift({
+                object: randomObject.split(' ')[0],
+                confidence: randomObject.match(/\((\d+)%\)/)[0],
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            if (lastDetections.length > 4) lastDetections.pop();
+            updateDetectionHistory();
+            detectionTimer = setTimeout(simulateObjectDetection, 3200);
+        }
+        function updateDetectionHistory() {
+            detectionList.innerHTML = '';
+            if (lastDetections.length === 0) {
+                detectionList.textContent = 'No detections yet';
+                return;
+            }
+            lastDetections.forEach(d => {
+                const div = document.createElement('div');
+                div.textContent = `${d.time}: ${d.object} ${d.confidence}`;
+                detectionList.appendChild(div);
+            });
+        }
+        function detectPosture() {
+            const statuses = [
+                "Good posture detected",
+                "Slight slouching detected",
+                "Leaning to one side",
+                "Excellent posture!"
+            ];
+            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+            postureStatus.innerHTML = `
+                <div style="font-weight: 500; margin-bottom: 6px;">Posture Analysis</div>
+                <div>Status: ${randomStatus}</div>
+            `;
+            addMessage('Emily', `I notice your posture: ${randomStatus.toLowerCase()}`, 'emily-bubble');
+        }
+        function detectExpression() {
+            const expressions = [
+                "Calm and focused",
+                "Slightly thoughtful",
+                "Content and relaxed",
+                "Mildly contemplative",
+                "Peaceful expression"
+            ];
+            const randomExpression = expressions[Math.floor(Math.random() * expressions.length)];
+            expressionOutput.innerHTML = `
+                <div style="font-weight: 500; margin-bottom: 6px;">Emotion Analysis</div>
+                <div>${randomExpression}</div>
+            `;
+            addMessage('Emily', `I sense you're feeling ${randomExpression.toLowerCase()}`, 'emily-bubble');
+        }
+        return { toggleCamera, detectPosture, detectExpression };
+    })();
+
+    // ---- GLOBALS / DOM ----
+    const chatLog = document.getElementById('chatLog');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+    const speakButton = document.getElementById('speakButton');
+    const speakNowButton = document.getElementById('speakNowButton');
+    const cameraButton = document.getElementById('cameraButton');
+    const journalButton = document.getElementById('journalButton');
+    const cameraSection = document.getElementById('cameraSection');
+    const journalSection = document.getElementById('journalSection');
+    const visionVideo = document.getElementById('visionVideo');
+    const startVisionBtn = document.getElementById('startVisionBtn');
+    const visionOutput = document.getElementById('visionOutput');
+    const postureBtn = document.getElementById('postureBtn');
+    const postureStatus = document.getElementById('postureStatus');
+    const expressionBtn = document.getElementById('expressionBtn');
+    const expressionOutput = document.getElementById('expressionOutput');
+    const detectionList = document.getElementById('detectionList');
+    const sentimentStatus = document.getElementById('sentimentStatus');
+    const listeningStatus = document.getElementById('listeningStatus');
+    const journalText = document.getElementById('journalText');
+    const saveJournalBtn = document.getElementById('saveJournalBtn');
+    const loadJournalBtn = document.getElementById('loadJournalBtn');
+    const journalStatus = document.getElementById('journalStatus');
+    let idlePromptInterval = null, lastEmilyMessage = "", currentSentiment = 'neutral';
+
+    // ---- MAIN ----
+    window.onload = function() {
+        setupListeners();
+        addMessage('Emily', "Hello Jason... I'm Emily. I'm here, quietly listening in the quiet. If it feels heavy, let it out. I’ll just be here, waiting for you.", 'emily-bubble');
+        startIdlePrompts();
+        updateSentimentIndicator();
+        navModule.setupTabs();
+    };
+
+    function setupListeners() {
+        sendButton.addEventListener('click', handleUser);
+        userInput.addEventListener('keypress', e => { if (e.key === 'Enter') { handleUser(); e.preventDefault(); } });
+        speakButton.addEventListener('click', () => voiceModule.speak(lastEmilyMessage));
+        speakNowButton.addEventListener('click', voiceModule.startSpeechRecognition);
+        cameraButton.addEventListener('click', () => navModule.showSection('camera'));
+        journalButton.addEventListener('click', () => navModule.showSection('journal'));
+        startVisionBtn.addEventListener('click', bioSenseModule.toggleCamera);
+        postureBtn.addEventListener('click', bioSenseModule.detectPosture);
+        expressionBtn.addEventListener('click', bioSenseModule.detectExpression);
+        saveJournalBtn.addEventListener('click', journalModule.saveJournal);
+        loadJournalBtn.addEventListener('click', journalModule.loadJournal);
+    }
+
+    function handleUser() {
+        const txt = userInput.value.trim();
+        if (!txt) return;
+        currentSentiment = chatModule.analyzeSentiment(txt);
+        updateSentimentIndicator();
+        addMessage('You', txt, 'user-bubble', currentSentiment);
+        userInput.value = '';
+        userInput.focus();
+        setTimeout(() => {
+            const r = chatModule.getResponse(txt, currentSentiment);
+            addMessage('Emily', r, 'emily-bubble');
+            lastEmilyMessage = r;
+            voiceModule.speak(r);
+        }, 850);
+        stopIdlePrompts();
+        startIdlePrompts();
+    }
+
+    function addMessage(sender, msg, cls = 'emily-bubble', sentiment = null) {
+        const b = document.createElement('div');
+        b.className = `chat-bubble ${cls}`;
+        let sentimentIndicator = '';
+        if (sentiment) {
+            const sentClass = sentiment.includes('positive') ? 'positive'
+                : sentiment.includes('negative') ? 'negative' : 'neutral';
+            sentimentIndicator = `<span class="sentiment-indicator ${sentClass}"></span>`;
+        }
+        b.innerHTML = `<strong>${sender}:</strong> ${sentimentIndicator} ${msg}`;
+        chatLog.append(b);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function updateSentimentIndicator() {
+        sentimentStatus.textContent = `${chatModule.sentimentEmoji(currentSentiment)} ` +
+            currentSentiment.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Idle melancholy prompts
+    function startIdlePrompts() {
+        stopIdlePrompts();
+        idlePromptInterval = setInterval(() => {
+            const msgs = [
+                "I'm still here if you need me...",
+                "If the silence is heavy, let’s just sit in it for a bit.",
+                "It's okay to say nothing.",
+                "Do you want to share something, or just be quiet together?",
+                "If it’s stormy outside, we can just listen to the rain together.",
+                "Not every moment needs to be filled. Sometimes I just like being here."
+            ];
+            addMessage('Emily', msgs[Math.floor(Math.random() * msgs.length)], 'emily-bubble');
+        }, 120000); // every 2 minutes
+    }
+    function stopIdlePrompts() { clearInterval(idlePromptInterval); }
+
+    function addSystemMessage(msg) {
+        const b = document.createElement('div');
+        b.className = 'text-center text-sm text-gray-400 py-2';
+        b.textContent = `System: ${msg}`;
+        chatLog.append(b);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    </script>
+</body>
+</html>
