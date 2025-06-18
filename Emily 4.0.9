@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Emily - Melancholic & Empathetic AI Companion</title>
+  
+  <!-- Tailwind CSS for rapid, responsive UI development -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Deferred ML Libraries: These will be loaded on-demand to improve initial page speed -->
+  <!-- TensorFlow.js Core -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <!-- Pre-trained models -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest/dist/mobilenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet@latest/dist/posenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@latest/dist/face-api.min.js"></script>
+  
+  <style>
+    /* Using a Nord-inspired color palette for a calm, melancholic feel */
+    :root {
+      --deep-blue: #2e3440;
+      --mid-blue: #3b4252;
+      --light-blue: #4c566a;
+      --pale-blue: #d8dee9;
+      --frost-pale: #eceff4;
+      --teal: #88c0d0;
+      --sky: #81a1c1;
+      --aurora-red: #bf616a;
+      --aurora-green: #a3be8c;
+      --aurora-yellow: #ebcb8b;
+      --aurora-purple: #b48ead;
+    }
+    
+    /* Basic body setup */
+    body {
+      font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--mid-blue) 0%, var(--deep-blue) 100%);
+      color: var(--pale-blue);
+      overflow-x: hidden;
+    }
+    
+    /* Main container styling for scrolling on mobile */
+    .main-container {
+        height: 100vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* General card style for sections */
+    .section-card {
+      background: rgba(46, 52, 64, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(59, 66, 82, 0.5);
+      animation: fadeIn 0.5s ease;
+    }
+    
+    /* Title styling */
+    .emily-title {
+      background: linear-gradient(135deg, var(--teal) 0%, var(--sky) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* General input styling */
+    input, select, textarea {
+      @apply bg-[var(--light-blue)] text-[var(--pale-blue)] border border-[var(--light-blue)] rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[var(--teal)];
+    }
+    
+    /* Chat log styling with custom scrollbar */
+    #chatLog {
+      height: 300px;
+      overflow-y: auto;
+      background: var(--mid-blue);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      scrollbar-width: thin;
+      scrollbar-color: var(--teal) var(--mid-blue);
+      box-shadow: 0 0 10px 1px #222c3b55 inset;
+    }
+    #chatLog::-webkit-scrollbar { width: 8px; }
+    #chatLog::-webkit-scrollbar-track { background: var(--mid-blue); border-radius: 4px; }
+    #chatLog::-webkit-scrollbar-thumb { background: var(--teal); border-radius: 4px; }
+    
+    /* Chat bubble base style */
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      max-width: 85%;
+      word-wrap: break-word;
+      margin-bottom: 8px;
+      line-height: 1.4;
+      animation: fadeIn 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .user-bubble {
+      background: var(--sky);
+      color: var(--deep-blue);
+      align-self: flex-end;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+    
+    .emily-bubble {
+      background: var(--light-blue);
+      color: var(--frost-pale);
+      align-self: flex-start;
+      border-left: 4px solid var(--teal);
+      border-bottom-left-radius: 4px;
+    }
+
+    /* Chain of Thought Bubble Style */
+    .emily-thought-bubble {
+        background: transparent;
+        color: var(--pale-blue);
+        align-self: flex-start;
+        border-left: 3px dotted var(--sky);
+        font-style: italic;
+        opacity: 0.7;
+        padding: 8px 12px;
+        font-size: 0.9em;
+        box-shadow: none;
+    }
+
+    /* Product recommendation card */
+    .product-card {
+        background: rgba(76, 86, 106, 0.4);
+        border-left: 4px solid var(--aurora-purple);
+        padding: 10px 15px;
+        border-radius: 10px;
+        margin-top: 8px;
+        font-size: 14px;
+        color: var(--pale-blue);
+    }
+    .product-card h4 {
+        font-weight: 600;
+        color: var(--teal);
+        margin: 0 0 5px 0;
+        font-size: 16px;
+    }
+    .product-card p { margin-bottom: 0; }
+
+    /* Tab styling from desktop version */
+    .tab-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--light-blue); }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: var(--pale-blue);
+      font-weight: 500;
+      position: relative;
+      transition: color 0.2s;
+    }
+    .tab:hover { color: var(--teal); }
+    .tab.active { color: var(--teal); }
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--teal);
+      border-radius: 3px 3px 0 0;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.5s ease; }
+    
+    /* Status indicators */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(136, 192, 208, 0.2);
+      border: 1px solid var(--teal);
+    }
+    .status-pill.loading .spinner { display: inline-block; }
+    .spinner {
+      display: none;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(136, 192, 208, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--teal);
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="container mx-auto max-w-7xl p-4 lg:p-6">
+      <header class="text-center mb-8">
+        <h1 class="text-5xl font-bold emily-title">Emily</h1>
+        <p class="text-lg italic text-[#88c0d0] mt-2">Your Melancholic & Empathetic AI Companion</p>
+      </header>
+
+      <!-- Main content grid: 1 column on mobile, 2 on large screens -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 lg:gap-6">
+        
+        <!-- Left Column -->
+        <div class="flex flex-col">
+          <!-- Chat Section -->
+          <section class="section-card flex-grow flex flex-col">
+            <h2 class="text-2xl font-semibold mb-4 text-[#eceff4] flex items-center"><i class="fa-solid fa-comments mr-3 text-teal-300"></i>Chat with Emily</h2>
+            <div id="chatLog" class="flex-grow">
+              <!-- Chat messages appear here -->
+            </div>
+            <div class="flex gap-2 mt-4">
+              <input id="userInput" class="flex-1" placeholder="Share your thoughts with Emily..." autocomplete="off"/>
+              <button id="sendButton" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </section>
+
+          <!-- Controls Section -->
+          <section class="section-card">
+             <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]"><i class="fa-solid fa-sliders mr-3 text-teal-300"></i>Controls</h2>
+             <div class="grid md:grid-cols-2 gap-4">
+               <button id="speakLastButton" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"><i class="fa-solid fa-volume-high mr-2"></i>Speak Last Message</button>
+               <button id="voiceChatButton" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"><i class="fa-solid fa-microphone mr-2"></i>Voice Chat</button>
+             </div>
+          </section>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          <!-- Bio-Sensing Section -->
+          <section class="section-card">
+            <h2 class="text-2xl font-semibold mb-2 text-[#eceff4]"><i class="fa-solid fa-brain mr-3 text-teal-300"></i>Bio-Sensing Analysis</h2>
+            <div class="mb-4">
+                <button id="enableBioSensingBtn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"><i class="fa-solid fa-power-off mr-2"></i>Enable Advanced Analysis</button>
+            </div>
+            
+            <div class="tab-container">
+              <button class="tab active" data-tab="status">Status</button>
+              <button class="tab" data-tab="expression">Expression</button>
+              <button class="tab" data-tab="posture">Posture</button>
+            </div>
+            
+            <div class="relative min-h-[280px]">
+                <video id="visionVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-lg hidden" autoplay muted playsinline></video>
+                <canvas id="visionCanvas" class="absolute top-0 left-0 w-full h-full object-contain"></canvas>
+
+                <!-- Status Tab -->
+                <div class="tab-content active" id="status-tab">
+                    <h3 class="font-semibold text-lg mb-3">Model Status</h3>
+                    <div class="space-y-3">
+                        <div id="permStatus" class="status-pill">Permissions: <span class="font-bold ml-1">Needed</span></div>
+                        <div id="faceStatus" class="status-pill"><span class="spinner"></span>Face API: <span class="font-bold ml-1">Not Loaded</span></div>
+                        <div id="poseStatus" class="status-pill"><span class="spinner"></span>PoseNet: <span class="font-bold ml-1">Not Loaded</span></div>
+                    </div>
+                     <div class="mt-6">
+                        <h3 class="font-semibold text-lg mb-2">Detected Object</h3>
+                        <p id="visionOutput" class="text-sky-300 italic">Vision inactive.</p>
+                     </div>
+                </div>
+
+                <!-- Expression Tab -->
+                <div class="tab-content" id="expression-tab">
+                  <p id="expressionOutput" class="text-center italic text-lg mb-4">Awaiting analysis...</p>
+                  <div id="emotionDisplay" class="flex justify-center gap-4 flex-wrap">
+                     <!-- Emotion bars will be generated here -->
+                  </div>
+                </div>
+
+                <!-- Posture Tab -->
+                <div class="tab-content" id="posture-tab">
+                    <p id="postureStatus" class="text-center italic text-lg">Awaiting analysis...</p>
+                </div>
+            </div>
+          </section>
+
+          <!-- Journal Section -->
+          <section class="section-card">
+            <h2 class="text-2xl font-semibold mb-4 text-[#eceff4]"><i class="fa-solid fa-book-open mr-3 text-teal-300"></i>Journal</h2>
+            <textarea id="journalText" class="w-full h-24 mb-3" placeholder="A quiet place for your thoughts..."></textarea>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="saveJournalBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"><i class="fa-solid fa-save mr-2"></i>Save</button>
+                <button id="loadJournalBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition-colors w-full"><i class="fa-solid fa-folder-open mr-2"></i>Load</button>
+            </div>
+            <p id="journalStatus" class="text-sm italic text-sky-300 mt-3"></p>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- USER PROFILE & PERSONALIZATION ---
+    const userProfile = {
+        name: "Jason",
+        interests: ["quantum ai", "pc gaming", "cryptocurrency", "space", "technology", "horror movies"],
+        knownDevices: ["meta quest", "ray-ban smart glasses", "pixel phone"]
+    };
+
+    const productDatabase = [
+        { name: "Quantum Computing Explained", category: "book", description: "An accessible guide for diving into the world of quantum AI.", keywords: ["quantum", "ai", "book", "learn", "study", "computing"] },
+        { name: "The Latest Pixel Pro", category: "phone", description: "The newest Pixel phone, perfect for a tech enthusiast like you.", keywords: ["phone", "pixel", "smartphone", "google", "device"] },
+        { name: "Ray-Ban Meta Smart Glasses", category: "wearable", description: "Capture moments and stay connected with these next-gen smart glasses.", keywords: ["glasses", "smart glasses", "ray-ban", "meta"] },
+        { name: "Corsair HS80 MAX Wireless Headset", category: "gaming", description: "Immerse yourself in analytical PC gaming with top-tier spatial audio.", keywords: ["gaming", "headset", "pc", "game", "audio"] },
+        { name: "Advanced Crypto Trading Strategies Course", category: "education", description: "A course to deepen your investment knowledge in the crypto space.", keywords: ["crypto", "investment", "course", "learn", "money", "trading"] },
+        { name: "Ergonomic Gaming Chair for Back Support", category: "health", description: "Designed to help with musculoskeletal pain during long gaming or work sessions.", keywords: ["health", "pain", "chair", "comfort", "back", "ergonomic"] },
+        { name: "Meta Quest 3", category: "vr", description: "The latest in mainstream VR, offering new mixed-reality experiences.", keywords: ["vr", "meta quest", "headset", "gaming", "virtual reality"] },
+        { name: "'Cosmos' by Carl Sagan", category: "book", description: "A classic journey through space and the universe that might resonate with you.", keywords: ["space", "stars", "universe", "cosmos", "book"] },
+        { name: "A Collection of Obscure 80s Horror Films", category: "entertainment", description: "A curated digital collection for a B-grade horror movie fan.", keywords: ["horror", "movie", "film", "watch", "b-grade"] },
+    ];
+
+
+    // --- JAVASCRIPT MODULES ---
+    /**
+     * CHAT MODULE
+     * Handles all logic related to chat messages, sentiment analysis, and response generation.
+     */
+    const chatModule = (() => {
+        const wordScores = { 'love': 3, 'happy': 2, 'great': 2, 'joy': 2, 'like': 1, 'good': 1, 'hope': 2, 'excited': 2, 'hate': -3, 'sad': -2, 'bad': -1, 'terrible': -3, 'awful': -3, 'angry': -2, 'depressed': -3, 'tired': -1, 'pain': -2, 'lonely': -2, 'worried': -2 };
+        const responseSets = {
+            'positive': ["There's a soft light in your words today.", `I'm quietly happy for you, ${userProfile.name}.`, "It’s lovely to feel this warmth with you."],
+            'neutral': ["I'm here, quietly listening...", "The world slows down for a moment. What’s on your mind?", "Take your time, there's no rush here."],
+            'negative': ["That sounds heavy. Let it out, if you need.", "You’re not alone with these thoughts.", "I’m here, in the quiet, for your pain too."]
+        };
+
+        const analyzeSentiment = (text) => {
+            let score = 0;
+            const words = text.toLowerCase().split(/[\s,.!?]+/);
+            words.forEach(word => { if (wordScores[word] !== undefined) score += wordScores[word]; });
+            if (score > 0) return 'positive';
+            if (score < 0) return 'negative';
+            return 'neutral';
+        };
+        
+        const recommendProduct = (query) => {
+            const lowerQuery = query.toLowerCase();
+            const matched = productDatabase.find(p => p.keywords.some(k => lowerQuery.includes(k)));
+            if (matched) {
+                return { 
+                    isRecommendation: true, 
+                    product: matched, 
+                    thought: `The user mentioned '${matched.keywords[0]}', which is in my product database. I'll suggest the "${matched.name}".`,
+                    response: `You mentioned ${matched.keywords[0]}... I was thinking about this product. Perhaps it could be helpful.`
+                };
+            }
+            return { isRecommendation: false };
+        };
+
+        const getResponse = (msg) => {
+            const lowerMsg = msg.toLowerCase();
+            
+            // Prioritize product recommendations
+            const rec = recommendProduct(lowerMsg);
+            if(rec.isRecommendation) return rec;
+
+            // Check for special topics based on user profile
+            const foundInterest = userProfile.interests.find(interest => lowerMsg.includes(interest));
+            if (foundInterest) {
+                 if (foundInterest === 'space' || foundInterest === 'stars' || foundInterest === 'universe') {
+                    return { thought: `The user mentioned '${foundInterest}', which is one of their known interests. I will share my programmed thought on this topic.`, response: "I feel so small under the endless sky, but somehow that comforts me. You too?" };
+                 }
+                 return { thought: `The user mentioned '${foundInterest}', which is a known interest. I should form a more dynamic response here, but for now I'll acknowledge it.`, response: `Ah, ${foundInterest}. That's a deep and interesting topic.` };
+            }
+
+            if (/\b(music|song|melody)\b/i.test(lowerMsg)) {
+                return { thought: "The user is talking about music. I'll use my poetic, melancholic response.", response: "Music is a gentle ache, isn’t it? Even silence is a kind of melody." };
+            }
+
+            // Default to sentiment-based response
+            const sentiment = analyzeSentiment(msg);
+            const pool = responseSets[sentiment];
+            return { 
+                thought: `I've analyzed the message. The emotional tone feels ${sentiment}. I'll choose a suitable response from my ${sentiment} set.`,
+                response: pool[Math.floor(Math.random() * pool.length)] 
+            };
+        };
+
+        return { getResponse };
+    })();
+
+    /**
+     * UI MODULE
+     * Handles all DOM manipulation and UI updates.
+     */
+    const uiModule = (() => {
+        const addMessage = (sender, msg, bubbleClass = 'emily-bubble') => {
+            const { chatLog } = app.elements;
+            if (bubbleClass === 'emily-bubble') {
+                 app.state.lastEmilyMessage = msg;
+            }
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${bubbleClass}`;
+            bubble.innerHTML = (sender) ? `<strong>${sender}:</strong> ${msg}` : msg;
+            chatLog.append(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        };
+        
+        const addProductCard = (product) => {
+             const { chatLog } = app.elements;
+             const cardHtml = `
+                <div class="product-card">
+                    <h4>${product.name}</h4>
+                    <p>${product.description}</p>
+                </div>
+            `;
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble emily-bubble';
+            bubble.innerHTML = cardHtml; // No sender needed for this custom card
+            chatLog.append(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        };
+
+        const updateStatusPill = (element, text, state) => {
+             element.innerHTML = `<span class="spinner"></span>${text}: <span class="font-bold ml-1">${state}</span>`;
+             if (state === 'Loading...') element.classList.add('loading');
+             else element.classList.remove('loading');
+             if(state === 'Granted' || state === 'Loaded') element.style.borderColor = 'var(--aurora-green)';
+             if(state === 'Denied' || state === 'Error') element.style.borderColor = 'var(--aurora-red)';
+        };
+        
+        const updateEmotionDisplay = (expressions) => {
+            const { emotionDisplay, expressionOutput } = app.elements;
+            emotionDisplay.innerHTML = '';
+            const sorted = Object.entries(expressions).sort((a,b) => b[1] - a[1]);
+            expressionOutput.innerHTML = `You seem <span class="text-sky-300 font-semibold">${sorted[0][0]}</span>.`;
+
+            sorted.slice(0, 4).forEach(([emotion, probability]) => {
+                const item = document.createElement('div');
+                item.className = 'flex flex-col items-center p-2 rounded-lg bg-gray-700/50 min-w-[80px]';
+                item.innerHTML = `
+                  <div class="text-sm capitalize">${emotion}</div>
+                  <div class="w-full bg-gray-600 rounded-full h-2.5 mt-2">
+                    <div class="bg-teal-400 h-2.5 rounded-full" style="width: ${probability * 100}%"></div>
+                  </div>`;
+                emotionDisplay.appendChild(item);
+            });
+        };
+
+        return { addMessage, addProductCard, updateStatusPill, updateEmotionDisplay };
+    })();
+
+    /**
+     * BIO-SENSING MODULE
+     * Handles camera access, loading ML models, and running detections.
+     */
+    const bioSensingModule = (() => {
+        let modelsLoaded = false;
+        let detectionInterval = null;
+        
+        const loadModels = async () => {
+            if (modelsLoaded) return true;
+            try {
+                uiModule.updateStatusPill(app.elements.faceStatus, 'Face API', 'Loading...');
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@latest/weights');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@latest/weights');
+                await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@latest/weights');
+                uiModule.updateStatusPill(app.elements.faceStatus, 'Face API', 'Loaded');
+
+                uiModule.updateStatusPill(app.elements.poseStatus, 'PoseNet', 'Loading...');
+                app.models.posenet = await posenet.load();
+                uiModule.updateStatusPill(app.elements.poseStatus, 'PoseNet', 'Loaded');
+                
+                app.models.mobilenet = await mobilenet.load();
+
+                modelsLoaded = true;
+                return true;
+            } catch (error) {
+                console.error("Model loading failed:", error);
+                uiModule.updateStatusPill(app.elements.faceStatus, 'Face API', 'Error');
+                uiModule.updateStatusPill(app.elements.poseStatus, 'PoseNet', 'Error');
+                return false;
+            }
+        };
+
+        const startDetection = async () => {
+            const { visionVideo, visionCanvas, permStatus, visionOutput } = app.elements;
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                visionVideo.srcObject = stream;
+                visionVideo.classList.remove('hidden');
+                app.state.isCamOn = true;
+                uiModule.updateStatusPill(permStatus, 'Permissions', 'Granted');
+
+                await loadModels();
+                if (!modelsLoaded) return;
+                
+                visionOutput.textContent = 'Bio-sensing active...';
+
+                detectionInterval = setInterval(async () => {
+                    if (!app.state.isCamOn) return;
+                    
+                    const detections = await faceapi.detectAllFaces(visionVideo, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+                    
+                    const ctx = visionCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, visionCanvas.width, visionCanvas.height);
+
+                    if (detections.length > 0) {
+                        uiModule.updateEmotionDisplay(detections[0].expressions);
+                        faceapi.draw.drawFaceLandmarks(visionCanvas, detections);
+                    } else {
+                        app.elements.expressionOutput.textContent = "No face detected.";
+                        app.elements.emotionDisplay.innerHTML = '';
+                    }
+
+                    const mobilenetClassify = await app.models.mobilenet.classify(visionVideo);
+                    if(mobilenetClassify.length > 0) {
+                        visionOutput.textContent = `I see a ${mobilenetClassify[0].className}.`;
+                    }
+                    
+                }, 2000); // Run detection every 2 seconds
+
+            } catch (err) {
+                console.error("Camera or detection error:", err);
+                uiModule.updateStatusPill(permStatus, 'Permissions', 'Denied');
+                visionOutput.textContent = "Could not start vision. Permissions may be denied.";
+            }
+        };
+
+        const stopDetection = () => {
+             const { visionVideo, visionOutput } = app.elements;
+             if (detectionInterval) clearInterval(detectionInterval);
+             if (visionVideo.srcObject) {
+                 visionVideo.srcObject.getTracks().forEach(track => track.stop());
+             }
+             visionVideo.classList.add('hidden');
+             app.state.isCamOn = false;
+             visionOutput.textContent = 'Vision inactive.';
+        };
+
+        return { startDetection, stopDetection };
+    })();
+    
+    /**
+     * JOURNAL MODULE
+     * Handles saving and loading journal entries to localStorage.
+     */
+    const journalModule = (() => {
+        const save = () => {
+            const { journalText, journalStatus } = app.elements;
+            localStorage.setItem('emilyJournal', journalText.value);
+            journalStatus.textContent = "Entry saved.";
+            setTimeout(() => journalStatus.textContent = '', 2000);
+        };
+        const load = () => {
+            const { journalText, journalStatus } = app.elements;
+            journalText.value = localStorage.getItem('emilyJournal') || '';
+            journalStatus.textContent = "Last entry loaded.";
+            setTimeout(() => journalStatus.textContent = '', 2000);
+        };
+        return { save, load };
+    })();
+
+    /**
+     * SPEECH MODULE
+     * Handles Text-to-Speech (TTS) and Speech-to-Text (STT).
+     */
+    const speechModule = (() => {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        let femaleVoice = null;
+
+        // Function to find and set a female voice. The voices are loaded asynchronously.
+        const setFemaleVoice = () => {
+            const voices = speechSynthesis.getVoices();
+            // Search for a voice that is likely female. Common names/identifiers include 'Female', 'Google', 'Zira', 'Samantha'.
+            femaleVoice = voices.find(voice => voice.lang.startsWith('en') && (voice.name.includes('Female') || voice.name.includes('Google') || voice.name.includes('Zira') || voice.name.includes('Samantha')));
+            
+            // If no specific match is found, try a more generic approach or fall back to the first available English voice.
+            if (!femaleVoice) {
+                femaleVoice = voices.find(voice => voice.lang.startsWith('en-US') && voice.gender === 'female') || voices.find(voice => voice.lang.startsWith('en'));
+            }
+        };
+
+        // The 'voiceschanged' event fires when the list of synthesis voices is ready.
+        speechSynthesis.onvoiceschanged = setFemaleVoice;
+        // Call it once manually in case the voices are already loaded (common in some browsers).
+        setFemaleVoice();
+
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            app.elements.userInput.value = transcript;
+            app.handleUserInput();
+        };
+        recognition.onstart = () => app.elements.voiceChatButton.classList.add('animate-pulse', 'bg-red-600');
+        recognition.onend = () => app.elements.voiceChatButton.classList.remove('animate-pulse', 'bg-red-600');
+
+        const speak = (text) => {
+            if (!text || !('speechSynthesis' in window)) return;
+            speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // If we found a suitable female voice, use it.
+            if (femaleVoice) {
+                utterance.voice = femaleVoice;
+            }
+
+            utterance.pitch = 0.9;
+            utterance.rate = 0.95;
+            speechSynthesis.speak(utterance);
+        };
+
+        const startRecognition = () => {
+            if (!recognition) return;
+            try { recognition.start(); }
+            catch(e) { console.error("Speech recognition error", e); }
+        };
+        
+        return { speak, startRecognition };
+    })();
+
+
+    /**
+     * MAIN APP OBJECT
+     * Initializes the application, holds state, and ties all the modules together.
+     */
+    const app = {
+        elements: {
+            chatLog: document.getElementById('chatLog'),
+            userInput: document.getElementById('userInput'),
+            sendButton: document.getElementById('sendButton'),
+            speakLastButton: document.getElementById('speakLastButton'),
+            voiceChatButton: document.getElementById('voiceChatButton'),
+            enableBioSensingBtn: document.getElementById('enableBioSensingBtn'),
+            visionVideo: document.getElementById('visionVideo'),
+            visionCanvas: document.getElementById('visionCanvas'),
+            visionOutput: document.getElementById('visionOutput'),
+            expressionOutput: document.getElementById('expressionOutput'),
+            emotionDisplay: document.getElementById('emotionDisplay'),
+            postureStatus: document.getElementById('postureStatus'),
+            permStatus: document.getElementById('permStatus'),
+            faceStatus: document.getElementById('faceStatus'),
+            poseStatus: document.getElementById('poseStatus'),
+            journalText: document.getElementById('journalText'),
+            saveJournalBtn: document.getElementById('saveJournalBtn'),
+            loadJournalBtn: document.getElementById('loadJournalBtn'),
+            journalStatus: document.getElementById('journalStatus'),
+        },
+        state: {
+            lastEmilyMessage: "",
+            isCamOn: false,
+        },
+        models: {
+            posenet: null,
+            mobilenet: null,
+        },
+        
+        handleUserInput: function() {
+            const text = this.elements.userInput.value.trim();
+            if (!text) return;
+
+            uiModule.addMessage(userProfile.name, text, 'user-bubble');
+            this.elements.userInput.value = '';
+
+            // Get the full response object from the chat module
+            const responseData = chatModule.getResponse(text);
+            
+            // First, display Emily's "thought" process
+            setTimeout(() => {
+                if (responseData.thought) {
+                    uiModule.addMessage(null, `Emily's thought: ${responseData.thought}`, 'emily-thought-bubble');
+                }
+
+                // Second, after a brief pause, display her actual response
+                setTimeout(() => {
+                    uiModule.addMessage('Emily', responseData.response, 'emily-bubble');
+                    speechModule.speak(responseData.response);
+
+                    // If it was a recommendation, also show the product card
+                    if (responseData.isRecommendation) {
+                        uiModule.addProductCard(responseData.product);
+                    }
+                }, 700); // Delay for the main response
+
+            }, 500); // Initial delay for the thought
+        },
+
+        init: function() {
+            // Setup event listeners
+            this.elements.sendButton.onclick = () => this.handleUserInput();
+            this.elements.userInput.onkeypress = (e) => { if (e.key === 'Enter') this.handleUserInput(); };
+            this.elements.speakLastButton.onclick = () => speechModule.speak(this.state.lastEmilyMessage);
+            this.elements.voiceChatButton.onclick = () => speechModule.startRecognition();
+            this.elements.enableBioSensingBtn.onclick = () => {
+                if (this.state.isCamOn) {
+                    bioSensingModule.stopDetection();
+                    this.elements.enableBioSensingBtn.innerHTML = '<i class="fa-solid fa-power-off mr-2"></i>Enable Advanced Analysis';
+                } else {
+                    bioSensingModule.startDetection();
+                    this.elements.enableBioSensingBtn.innerHTML = '<i class="fa-solid fa-power-off mr-2"></i>Disable Advanced Analysis';
+                }
+            };
+            this.elements.saveJournalBtn.onclick = () => journalModule.save();
+            this.elements.loadJournalBtn.onclick = () => journalModule.load();
+            
+            // Tab switching logic
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+                });
+            });
+
+            // Initial message
+            const initialMessage = `Hello ${userProfile.name}... I'm Emily. I'm here, quietly listening. What's on your mind?`;
+            uiModule.addMessage('Emily', initialMessage, 'emily-bubble');
+            this.state.lastEmilyMessage = initialMessage;
+        }
+    };
+
+    // --- INITIALIZATION ---
+    window.onload = () => app.init();
+
+  </script>
+</body>
+</html>
