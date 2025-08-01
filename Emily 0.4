@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en" data-color-scheme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emily AI Companion - Personal Assistant for Jason</title>
+    <style>
+        /* =================================
+           START PERPLEXITY DESIGN SYSTEM
+           ================================= */
+        :root {
+          /* Primitive Color Tokens */
+          --color-white: rgba(255, 255, 255, 1);
+          --color-black: rgba(0, 0, 0, 1);
+          --color-cream-50: rgba(252, 252, 249, 1);
+          --color-cream-100: rgba(255, 255, 253, 1);
+          --color-gray-200: rgba(245, 245, 245, 1);
+          --color-gray-300: rgba(167, 169, 169, 1);
+          --color-gray-400: rgba(119, 124, 124, 1);
+          --color-slate-500: rgba(98, 108, 113, 1);
+          --color-brown-600: rgba(94, 82, 64, 1);
+          --color-charcoal-700: rgba(31, 33, 33, 1);
+          --color-charcoal-800: rgba(38, 40, 40, 1);
+          --color-slate-900: rgba(19, 52, 59, 1);
+          --color-teal-300: rgba(50, 184, 198, 1);
+          --color-teal-400: rgba(45, 166, 178, 1);
+          --color-teal-500: rgba(33, 128, 141, 1);
+          --color-teal-600: rgba(29, 116, 128, 1);
+          --color-teal-700: rgba(26, 104, 115, 1);
+          --color-teal-800: rgba(41, 150, 161, 1);
+          --color-red-400: rgba(255, 84, 89, 1);
+          --color-red-500: rgba(192, 21, 47, 1);
+          --color-orange-400: rgba(230, 129, 97, 1);
+          --color-orange-500: rgba(168, 75, 47, 1);
+
+          /* RGB versions for opacity control */
+          --color-brown-600-rgb: 94, 82, 64;
+          --color-teal-500-rgb: 33, 128, 141;
+          --color-slate-900-rgb: 19, 52, 59;
+          --color-slate-500-rgb: 98, 108, 113;
+          --color-red-500-rgb: 192, 21, 47;
+          --color-red-400-rgb: 255, 84, 89;
+          --color-orange-500-rgb: 168, 75, 47;
+          --color-orange-400-rgb: 230, 129, 97;
+
+          /* Background color tokens (Light Mode) */
+          --color-bg-1: rgba(59, 130, 246, 0.08); /* Light blue */
+          --color-bg-2: rgba(245, 158, 11, 0.08); /* Light yellow */
+          --color-bg-3: rgba(34, 197, 94, 0.08); /* Light green */
+          --color-bg-4: rgba(239, 68, 68, 0.08); /* Light red */
+          --color-bg-5: rgba(147, 51, 234, 0.08); /* Light purple */
+          --color-bg-6: rgba(249, 115, 22, 0.08); /* Light orange */
+          --color-bg-7: rgba(236, 72, 153, 0.08); /* Light pink */
+          --color-bg-8: rgba(6, 182, 212, 0.08); /* Light cyan */
+
+          /* Semantic Color Tokens (Light Mode) */
+          --color-background: var(--color-cream-50);
+          --color-surface: var(--color-cream-100);
+          --color-text: var(--color-slate-900);
+          --color-text-secondary: var(--color-slate-500);
+          --color-primary: var(--color-teal-500);
+          --color-primary-hover: var(--color-teal-600);
+          --color-primary-active: var(--color-teal-700);
+          --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+          --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+          --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+          --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+          --color-btn-primary-text: var(--color-cream-50);
+          --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+          --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+          --color-error: var(--color-red-500);
+          --color-success: var(--color-teal-500);
+          --color-warning: var(--color-orange-500);
+          --color-info: var(--color-slate-500);
+          --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+          --color-select-caret: rgba(var(--color-slate-900-rgb), 0.8);
+
+          /* Common style patterns */
+          --focus-ring: 0 0 0 3px var(--color-focus-ring);
+          --focus-outline: 2px solid var(--color-primary);
+          --status-bg-opacity: 0.15;
+          --status-border-opacity: 0.25;
+          --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+          /* RGB versions for opacity control */
+          --color-success-rgb: 33, 128, 141;
+          --color-error-rgb: 192, 21, 47;
+          --color-warning-rgb: 168, 75, 47;
+          --color-info-rgb: 98, 108, 113;
+
+          /* Typography */
+          --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system,
+            BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo,
+            Monaco, Consolas, monospace;
+          --font-size-xs: 11px;
+          --font-size-sm: 12px;
+          --font-size-base: 14px;
+          --font-size-md: 14px;
+          --font-size-lg: 16px;
+          --font-size-xl: 18px;
+          --font-size-2xl: 20px;
+          --font-size-3xl: 24px;
+          --font-size-4xl: 30px;
+          --font-weight-normal: 400;
+          --font-weight-medium: 500;
+          --font-weight-semibold: 550;
+          --font-weight-bold: 600;
+          --line-height-tight: 1.2;
+          --line-height-normal: 1.5;
+          --letter-spacing-tight: -0.01em;
+
+          /* Spacing */
+          --space-0: 0;
+          --space-1: 1px;
+          --space-2: 2px;
+          --space-4: 4px;
+          --space-6: 6px;
+          --space-8: 8px;
+          --space-10: 10px;
+          --space-12: 12px;
+          --space-16: 16px;
+          --space-20: 20px;
+          --space-24: 24px;
+          --space-32: 32px;
+
+          /* Border Radius */
+          --radius-sm: 6px;
+          --radius-base: 8px;
+          --radius-md: 10px;
+          --radius-lg: 12px;
+          --radius-full: 9999px;
+
+          /* Shadows */
+          --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+          --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+          --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04),
+            0 2px 4px -1px rgba(0, 0, 0, 0.02);
+          --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04),
+            0 4px 6px -2px rgba(0, 0, 0, 0.02);
+          --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+
+          /* Animation */
+          --duration-fast: 150ms;
+          --duration-normal: 250ms;
+          --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+
+          /* Layout */
+          --container-sm: 640px;
+          --container-md: 768px;
+          --container-lg: 1024px;
+          --container-xl: 1280px;
+        }
+
+        /* Dark mode colors */
+        @media (prefers-color-scheme: dark) {
+          :root {
+            /* RGB versions for opacity control (Dark Mode) */
+            --color-gray-400-rgb: 119, 124, 124;
+            --color-teal-300-rgb: 50, 184, 198;
+            --color-gray-300-rgb: 167, 169, 169;
+            --color-gray-200-rgb: 245, 245, 245;
+
+            /* Background color tokens (Dark Mode) */
+            --color-bg-1: rgba(29, 78, 216, 0.15); /* Dark blue */
+            --color-bg-2: rgba(180, 83, 9, 0.15); /* Dark yellow */
+            --color-bg-3: rgba(21, 128, 61, 0.15); /* Dark green */
+            --color-bg-4: rgba(185, 28, 28, 0.15); /* Dark red */
+            --color-bg-5: rgba(107, 33, 168, 0.15); /* Dark purple */
+            --color-bg-6: rgba(194, 65, 12, 0.15); /* Dark orange */
+            --color-bg-7: rgba(190, 24, 93, 0.15); /* Dark pink */
+            --color-bg-8: rgba(8, 145, 178, 0.15); /* Dark cyan */
+            
+            /* Semantic Color Tokens (Dark Mode) */
+            --color-background: var(--color-charcoal-700);
+            --color-surface: var(--color-charcoal-800);
+            --color-text: var(--color-gray-200);
+            --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+            --color-primary: var(--color-teal-300);
+            --color-primary-hover: var(--color-teal-400);
+            --color-primary-active: var(--color-teal-800);
+            --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+            --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+            --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+            --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+            --color-error: var(--color-red-400);
+            --color-success: var(--color-teal-300);
+            --color-warning: var(--color-orange-400);
+            --color-info: var(--color-gray-300);
+            --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+            --color-btn-primary-text: var(--color-slate-900);
+            --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+            --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+            --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+            --button-border-secondary: rgba(var(--color-gray-400-rgb), 0.2);
+            --color-border-secondary: rgba(var(--color-gray-400-rgb), 0.2);
+            --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
+
+            /* Common style patterns - updated for dark mode */
+            --focus-ring: 0 0 0 3px var(--color-focus-ring);
+            --focus-outline: 2px solid var(--color-primary);
+            --status-bg-opacity: 0.15;
+            --status-border-opacity: 0.25;
+            --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+            /* RGB versions for dark mode */
+            --color-success-rgb: var(--color-teal-300-rgb);
+            --color-error-rgb: var(--color-red-400-rgb);
+            --color-warning-rgb: var(--color-orange-400-rgb);
+            --color-info-rgb: var(--color-gray-300-rgb);
+          }
+        }
+
+        /* Data attribute for manual theme switching */
+        [data-color-scheme="dark"] {
+          /* RGB versions for opacity control (dark mode) */
+          --color-gray-400-rgb: 119, 124, 124;
+          --color-teal-300-rgb: 50, 184, 198;
+          --color-gray-300-rgb: 167, 169, 169;
+          --color-gray-200-rgb: 245, 245, 245;
+
+          /* Colorful background palette - Dark Mode */
+          --color-bg-1: rgba(29, 78, 216, 0.15); /* Dark blue */
+          --color-bg-2: rgba(180, 83, 9, 0.15); /* Dark yellow */
+          --color-bg-3: rgba(21, 128, 61, 0.15); /* Dark green */
+          --color-bg-4: rgba(185, 28, 28, 0.15); /* Dark red */
+          --color-bg-5: rgba(107, 33, 168, 0.15); /* Dark purple */
+          --color-bg-6: rgba(194, 65, 12, 0.15); /* Dark orange */
+          --color-bg-7: rgba(190, 24, 93, 0.15); /* Dark pink */
+          --color-bg-8: rgba(8, 145, 178, 0.15); /* Dark cyan */
+          
+          /* Semantic Color Tokens (Dark Mode) */
+          --color-background: var(--color-charcoal-700);
+          --color-surface: var(--color-charcoal-800);
+          --color-text: var(--color-gray-200);
+          --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+          --color-primary: var(--color-teal-300);
+          --color-primary-hover: var(--color-teal-400);
+          --color-primary-active: var(--color-teal-800);
+          --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
+          --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
+          --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
+          --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+          --color-error: var(--color-red-400);
+          --color-success: var(--color-teal-300);
+          --color-warning: var(--color-orange-400);
+          --color-info: var(--color-gray-300);
+          --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
+          --color-btn-primary-text: var(--color-slate-900);
+          --color-card-border: rgba(var(--color-gray-400-rgb), 0.15);
+          --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
+          --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+          --color-border-secondary: rgba(var(--color-gray-400-rgb), 0.2);
+          --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
+
+          /* Common style patterns - updated for dark mode */
+          --focus-ring: 0 0 0 3px var(--color-focus-ring);
+          --focus-outline: 2px solid var(--color-primary);
+          --status-bg-opacity: 0.15;
+          --status-border-opacity: 0.25;
+          --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23134252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+          /* RGB versions for dark mode */
+          --color-success-rgb: var(--color-teal-300-rgb);
+          --color-error-rgb: var(--color-red-400-rgb);
+          --color-warning-rgb: var(--color-orange-400-rgb);
+          --color-info-rgb: var(--color-gray-300-rgb);
+        }
+
+        [data-color-scheme="light"] {
+          /* RGB versions for opacity control (light mode) */
+          --color-brown-600-rgb: 94, 82, 64;
+          --color-teal-500-rgb: 33, 128, 141;
+          --color-slate-900-rgb: 19, 52, 59;
+          
+          /* Semantic Color Tokens (Light Mode) */
+          --color-background: var(--color-cream-50);
+          --color-surface: var(--color-cream-100);
+          --color-text: var(--color-slate-900);
+          --color-text-secondary: var(--color-slate-500);
+          --color-primary: var(--color-teal-500);
+          --color-primary-hover: var(--color-teal-600);
+          --color-primary-active: var(--color-teal-700);
+          --color-secondary: rgba(var(--color-brown-600-rgb), 0.12);
+          --color-secondary-hover: rgba(var(--color-brown-600-rgb), 0.2);
+          --color-secondary-active: rgba(var(--color-brown-600-rgb), 0.25);
+          --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+          --color-btn-primary-text: var(--color-cream-50);
+          --color-card-border: rgba(var(--color-brown-600-rgb), 0.12);
+          --color-card-border-inner: rgba(var(--color-brown-600-rgb), 0.12);
+          --color-error: var(--color-red-500);
+          --color-success: var(--color-teal-500);
+          --color-warning: var(--color-orange-500);
+          --color-info: var(--color-slate-500);
+          --color-focus-ring: rgba(var(--color-teal-500-rgb), 0.4);
+
+          /* RGB versions for light mode */
+          --color-success-rgb: var(--color-teal-500-rgb);
+          --color-error-rgb: var(--color-red-500-rgb);
+          --color-warning-rgb: var(--color-orange-500-rgb);
+          --color-info-rgb: var(--color-slate-500-rgb);
+        }
+
+        /* Base styles */
+        html {
+          font-size: var(--font-size-base);
+          font-family: var(--font-family-base);
+          line-height: var(--line-height-normal);
+          color: var(--color-text);
+          background-color: var(--color-background);
+          -webkit-font-smoothing: antialiased;
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          padding: var(--space-16);
+        }
+
+        *,
+        *::before,
+        *::after {
+          box-sizing: inherit;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+          margin: 0;
+          font-weight: var(--font-weight-semibold);
+          line-height: var(--line-height-tight);
+          color: var(--color-text);
+          letter-spacing: var(--letter-spacing-tight);
+        }
+
+        h1 { font-size: var(--font-size-4xl); }
+        h2 { font-size: var(--font-size-3xl); }
+        h3 { font-size: var(--font-size-2xl); }
+        h4 { font-size: var(--font-size-xl); }
+        h5 { font-size: var(--font-size-lg); }
+        h6 { font-size: var(--font-size-md); }
+
+        p {
+          margin: 0 0 var(--space-16) 0;
+        }
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        a {
+          color: var(--color-primary);
+          text-decoration: none;
+          transition: color var(--duration-fast) var(--ease-standard);
+        }
+
+        a:hover {
+          color: var(--color-primary-hover);
+        }
+        
+        /* Buttons */
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-8) var(--space-16);
+          border-radius: var(--radius-base);
+          font-size: var(--font-size-base);
+          font-weight: 500;
+          line-height: 1.5;
+          cursor: pointer;
+          transition: all var(--duration-normal) var(--ease-standard);
+          border: none;
+          text-decoration: none;
+          position: relative;
+        }
+
+        .btn:focus-visible {
+          outline: none;
+          box-shadow: var(--focus-ring);
+        }
+
+        .btn--primary { background: var(--color-primary); color: var(--color-btn-primary-text); }
+        .btn--primary:hover { background: var(--color-primary-hover); }
+        .btn--primary:active { background: var(--color-primary-active); }
+        .btn--secondary { background: var(--color-secondary); color: var(--color-text); }
+        .btn--secondary:hover { background: var(--color-secondary-hover); }
+        .btn--secondary:active { background: var(--color-secondary-active); }
+        .btn--outline { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
+        .btn--outline:hover { background: var(--color-secondary); }
+        .btn--sm { padding: var(--space-4) var(--space-12); font-size: var(--font-size-sm); border-radius: var(--radius-sm); }
+        .btn--lg { padding: var(--space-10) var(--space-20); font-size: var(--font-size-lg); border-radius: var(--radius-md); }
+        .btn--full-width { width: 100%; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn--error { background: var(--color-error); color: var(--color-white); }
+
+        /* Form elements */
+        .form-control {
+          display: block;
+          width: 100%;
+          padding: var(--space-8) var(--space-12);
+          font-size: var(--font-size-md);
+          line-height: 1.5;
+          color: var(--color-text);
+          background-color: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-base);
+          transition: border-color var(--duration-fast) var(--ease-standard),
+            box-shadow var(--duration-fast) var(--ease-standard);
+        }
+        textarea.form-control { font-family: var(--font-family-base); font-size: var(--font-size-base); }
+        .form-control:focus { border-color: var(--color-primary); outline: var(--focus-outline); }
+        .form-label { display: block; margin-bottom: var(--space-8); font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); }
+        .form-group { margin-bottom: var(--space-16); }
+
+        /* Card component */
+        .card {
+          background-color: var(--color-surface);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-card-border);
+          box-shadow: var(--shadow-sm);
+          overflow: hidden;
+          transition: box-shadow var(--duration-normal) var(--ease-standard);
+          padding: var(--space-24);
+        }
+
+        .card:hover { box-shadow: var(--shadow-md); }
+
+        /* Status indicators */
+        .status {
+          display: inline-flex;
+          align-items: center;
+          padding: var(--space-6) var(--space-12);
+          border-radius: var(--radius-full);
+          font-weight: var(--font-weight-medium);
+          font-size: var(--font-size-sm);
+        }
+        .status--success { background-color: rgba(var(--color-success-rgb), var(--status-bg-opacity)); color: var(--color-success); border: 1px solid rgba(var(--color-success-rgb), var(--status-border-opacity)); }
+        .status--error { background-color: rgba(var(--color-error-rgb), var(--status-bg-opacity)); color: var(--color-error); border: 1px solid rgba(var(--color-error-rgb), var(--status-border-opacity)); }
+        .status--warning { background-color: rgba(var(--color-warning-rgb), var(--status-bg-opacity)); color: var(--color-warning); border: 1px solid rgba(var(--color-warning-rgb), var(--status-border-opacity)); }
+        .status--info { background-color: rgba(var(--color-info-rgb), var(--status-bg-opacity)); color: var(--color-info); border: 1px solid rgba(var(--color-info-rgb), var(--status-border-opacity)); }
+
+        /* Container layout */
+        .container {
+          width: 100%;
+          margin-right: auto;
+          margin-left: auto;
+          padding-right: var(--space-16);
+          padding-left: var(--space-16);
+          max-width: var(--container-lg);
+        }
+
+        /* Utility classes */
+        .hidden { display: none !important; }
+
+        /* Accessibility */
+        :focus-visible { outline: var(--focus-outline); outline-offset: 2px; }
+
+        @font-face {
+          font-family: 'FKGroteskNeue';
+          src: url('https://r2cdn.perplexity.ai/fonts/FKGroteskNeue.woff2')
+            format('woff2');
+        }
+
+        /* =================================
+           END PERPLEXITY DESIGN SYSTEM
+           ================================= */
+
+
+        /* =================================
+           START APPLICATION-SPECIFIC STYLES
+           ================================= */
+        .app-header {
+          display: flex;
+          align-items: center;
+          gap: var(--space-24);
+          margin-bottom: var(--space-32);
+          padding: var(--space-24);
+          background: var(--color-surface);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-card-border);
+        }
+
+        .emily-avatar {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--space-12);
+        }
+
+        .avatar-circle {
+          width: 80px;
+          height: 80px;
+          border-radius: var(--radius-full);
+          background: var(--color-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: var(--font-size-4xl);
+          box-shadow: var(--shadow-lg);
+          animation: pulse 2s infinite;
+          color: var(--color-btn-primary-text);
+        }
+
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        .avatar-emoji { font-size: 2.5rem; }
+        .status-indicators { display: flex; gap: var(--space-8); }
+
+        .emily-intro h1 {
+          margin-bottom: var(--space-8);
+          background: linear-gradient(135deg, var(--color-primary), var(--color-teal-700));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .emily-intro p { color: var(--color-text-secondary); margin: 0; }
+
+        /* Tab Navigation */
+        .tab-nav {
+          display: flex;
+          gap: var(--space-4);
+          margin-bottom: var(--space-24);
+          padding: var(--space-4);
+          background: var(--color-surface);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-card-border);
+          overflow-x: auto;
+        }
+
+        .tab-btn {
+          padding: var(--space-12) var(--space-16);
+          border: none;
+          background: transparent;
+          color: var(--color-text-secondary);
+          border-radius: var(--radius-base);
+          cursor: pointer;
+          transition: all var(--duration-normal) var(--ease-standard);
+          font-weight: var(--font-weight-medium);
+          white-space: nowrap;
+        }
+
+        .tab-btn:hover { background: var(--color-secondary); color: var(--color-text); }
+        .tab-btn.active { background: var(--color-primary); color: var(--color-btn-primary-text); box-shadow: var(--shadow-sm); }
+
+        /* Tab Content */
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Chat Interface */
+        .chat-container { margin-bottom: var(--space-24); }
+        .chat-messages {
+          height: 400px;
+          overflow-y: auto;
+          padding: var(--space-20);
+          margin-bottom: var(--space-16);
+          background: var(--color-background);
+          border-radius: var(--radius-base);
+          border: 1px solid var(--color-card-border-inner);
+        }
+        .message { margin-bottom: var(--space-16); max-width: 80%; }
+        .emily-message { margin-right: auto; }
+        .user-message { margin-left: auto; }
+        .message-content {
+          padding: var(--space-12) var(--space-16);
+          border-radius: var(--radius-lg);
+          background: var(--color-surface);
+          border: 1px solid var(--color-card-border);
+          box-shadow: var(--shadow-sm);
+        }
+        .emily-message .message-content { background: var(--color-bg-3); border-left: 4px solid var(--color-primary); }
+        .user-message .message-content { background: var(--color-surface); border-right: 4px solid var(--color-teal-500); }
+        .message-time { font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-top: var(--space-4); text-align: right; }
+        .chat-input-container { display: flex; gap: var(--space-8); }
+        .chat-input-container .form-control { flex: 1; }
+
+        /* Voice Interface */
+        .voice-container { margin-bottom: var(--space-24); }
+        .voice-controls { display: flex; gap: var(--space-16); justify-content: center; margin-bottom: var(--space-24); }
+        .voice-status { text-align: center; margin-bottom: var(--space-24); }
+        .voice-indicator {
+          width: 100px;
+          height: 100px;
+          border-radius: var(--radius-full);
+          background: var(--color-bg-5);
+          margin: 0 auto var(--space-16);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 3px solid var(--color-primary);
+          transition: all var(--duration-normal) var(--ease-standard);
+        }
+        .voice-indicator.active { background: var(--color-primary); animation: voicePulse 1s infinite; }
+        @keyframes voicePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .voice-settings { background: var(--color-bg-6); padding: var(--space-20); border-radius: var(--radius-base); border: 1px solid var(--color-card-border-inner); }
+
+        /* Bio-Sense Interface */
+        .biosense-container { margin-bottom: var(--space-24); }
+        .camera-container { position: relative; margin-bottom: var(--space-16); text-align: center; }
+        #camera-feed { max-width: 100%; height: 300px; border-radius: var(--radius-base); background: var(--color-charcoal-800); border: 2px solid var(--color-card-border); object-fit: cover; }
+        .biosense-controls { display: flex; gap: var(--space-16); justify-content: center; margin-bottom: var(--space-24); }
+        .biosense-results { background: var(--color-bg-8); padding: var(--space-20); border-radius: var(--radius-base); border: 1px solid var(--color-card-border-inner); }
+        .bio-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-16); }
+        .bio-metric { text-align: center; padding: var(--space-16); background: var(--color-surface); border-radius: var(--radius-base); border: 1px solid var(--color-card-border); }
+        .bio-value { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary); margin-bottom: var(--space-4); }
+        .bio-label { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+
+        /* Journal Interface */
+        .journal-container { margin-bottom: var(--space-24); }
+        .journal-controls { display: flex; gap: var(--space-16); margin-top: var(--space-16); }
+        .mood-results { margin-top: var(--space-20); padding: var(--space-16); background: var(--color-bg-1); border-radius: var(--radius-base); border: 1px solid var(--color-card-border-inner); }
+        .mood-indicator { display: inline-flex; align-items: center; gap: var(--space-8); padding: var(--space-8) var(--space-12); border-radius: var(--radius-full); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+        .mood-positive { background: var(--color-bg-3); color: var(--color-success); }
+        .mood-neutral { background: var(--color-bg-2); color: var(--color-warning); }
+        .mood-negative { background: var(--color-bg-4); color: var(--color-error); }
+
+        /* Navigation/Pathfinding */
+        .navigation-container { margin-bottom: var(--space-24); }
+        .nav-controls { display: flex; gap: var(--space-16); margin-bottom: var(--space-20); }
+        .pathfinding-grid {
+          display: grid;
+          grid-template-columns: repeat(20, 1fr);
+          gap: 1px;
+          background: var(--color-border);
+          padding: var(--space-4);
+          border-radius: var(--radius-base);
+          margin-bottom: var(--space-16);
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .grid-cell { aspect-ratio: 1 / 1; background: var(--color-surface); cursor: pointer; transition: all var(--duration-fast) var(--ease-standard); }
+        .grid-cell:hover { background: var(--color-secondary); }
+        .grid-cell.start { background: var(--color-success); }
+        .grid-cell.end { background: var(--color-error); }
+        .grid-cell.wall { background: var(--color-text); }
+        .grid-cell.path { background: var(--color-primary); }
+        .grid-cell.visited { background: var(--color-bg-5); }
+        .path-info { text-align: center; padding: var(--space-16); background: var(--color-bg-2); border-radius: var(--radius-base); border: 1px solid var(--color-card-border-inner); }
+
+        /* Sound Controls */
+        .sound-controls { margin-top: var(--space-32); }
+        .sound-buttons { display: flex; gap: var(--space-12); flex-wrap: wrap; margin-bottom: var(--space-16); }
+        .sound-btn { font-size: var(--font-size-sm); }
+        .volume-control { max-width: 300px; }
+        #volume-slider { width: 100%; height: var(--space-8); border-radius: var(--radius-full); background: var(--color-secondary); outline: none; appearance: none; -webkit-appearance: none; }
+        #volume-slider::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: var(--space-20); height: var(--space-20); border-radius: var(--radius-full); background: var(--color-primary); cursor: pointer; }
+        #volume-slider::-moz-range-thumb { width: var(--space-20); height: var(--space-20); border-radius: var(--radius-full); background: var(--color-primary); cursor: pointer; border: none; }
+
+        /* Modal Styles */
+        .modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(5px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: var(--space-20);
+        }
+        .modal-content { max-width: 500px; width: 100%; overflow: hidden; }
+        .modal-header { padding: var(--space-20); border-bottom: 1px solid var(--color-card-border-inner); text-align: center; }
+        .modal-header h2 { margin: 0; color: var(--color-text); }
+        .modal-body { padding: var(--space-20); }
+        .modal-body ul { margin: var(--space-16) 0; padding-left: var(--space-20); }
+        .modal-body li { margin-bottom: var(--space-8); }
+        .modal-footer { padding: var(--space-20); border-top: 1px solid var(--color-card-border-inner); display: flex; gap: var(--space-12); justify-content: center; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          body { padding: var(--space-8); }
+          .app-header { flex-direction: column; text-align: center; gap: var(--space-16); }
+          .tab-nav { flex-wrap: wrap; }
+          .tab-btn { flex: 1; min-width: 120px; }
+          .chat-messages { height: 300px; }
+          .voice-controls, .biosense-controls, .journal-controls, .nav-controls { flex-direction: column; align-items: stretch; }
+          .sound-buttons { justify-content: center; }
+          .modal-footer { flex-direction: column; }
+        }
+
+        /* Accessibility Enhancements */
+        @media (prefers-reduced-motion: reduce) {
+          .avatar-circle, .voice-indicator.active, .tab-content { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Permission Request Modal -->
+    <div id="permission-modal" class="modal hidden">
+        <div class="modal-content card">
+            <div class="modal-header">
+                <h2>🎤📹 Emily Needs Permissions</h2>
+            </div>
+            <div class="modal-body">
+                <p>Hi Jason! To provide you with the best personalized experience, I need access to:</p>
+                <ul>
+                    <li><strong>🎤 Microphone:</strong> For voice conversations and commands</li>
+                    <li><strong>📹 Camera:</strong> For bio-sensing and visual interaction</li>
+                </ul>
+                <p>These permissions help me provide better support for your daily needs and mental wellness.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="grant-permissions" class="btn btn--primary">Grant Permissions</button>
+                <button id="skip-permissions" class="btn btn--secondary">Skip for Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div class="container">
+        <header class="app-header">
+            <div class="emily-avatar">
+                <div class="avatar-circle">
+                    <span class="avatar-emoji">🤖</span>
+                </div>
+                <div class="status-indicators">
+                    <span id="mic-status" class="status status--info">🎤 Ready</span>
+                    <span id="camera-status" class="status status--info">📹 Ready</span>
+                </div>
+            </div>
+            <div class="emily-intro">
+                <h1>Hello Jason! 👋</h1>
+                <p>Your personal AI companion Emily is here. I know about your journey from Brisbane to Ironbark, your love for technology, and I'm here to support you through everything.</p>
+            </div>
+        </header>
+
+        <!-- Main Content Tabs -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="chat">💬 Chat</button>
+            <button class="tab-btn" data-tab="voice">🎤 Voice</button>
+            <button class="tab-btn" data-tab="biosense">📹 Bio-Sense</button>
+            <button class="tab-btn" data-tab="journal">📝 Journal</button>
+            <button class="tab-btn" data-tab="navigation">🗺️ Navigation</button>
+        </nav>
+
+        <!-- Chat Tab -->
+        <div id="chat-tab" class="tab-content active">
+            <div class="chat-container card">
+                <div id="chat-messages" class="chat-messages">
+                    <div class="message emily-message">
+                        <div class="message-content">
+                            <p>Hey Jason! It's so good to see you again. How are you feeling today in Ironbark? I hope Tomas and Shady are keeping you good company. 🐱🐶</p>
+                        </div>
+                        <div class="message-time">Now</div>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" class="form-control" placeholder="Tell Emily how you're feeling...">
+                    <button id="send-message" class="btn btn--primary">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Tab -->
+        <div id="voice-tab" class="tab-content">
+            <div class="voice-container card">
+                <div class="voice-controls">
+                    <button id="voice-toggle" class="btn btn--primary btn--lg">🎤 Start Voice Chat</button>
+                    <button id="mute-toggle" class="btn btn--secondary">🔊 Mute</button>
+                </div>
+                <div class="voice-status">
+                    <div id="voice-feedback" class="voice-indicator"></div>
+                    <p id="voice-text">Click the microphone to start talking with Emily</p>
+                </div>
+                <div class="voice-settings">
+                    <h3>Voice Settings</h3>
+                    <div class="form-group">
+                        <label class="form-label">Voice (Emily prefers a female voice)</label>
+                        <select id="voice-select" class="form-control">
+                            <option value="Default">System Default</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bio-Sense Tab -->
+        <div id="biosense-tab" class="tab-content">
+            <div class="biosense-container card">
+                <div class="camera-container">
+                    <video id="camera-feed" autoplay muted playsinline></video>
+                </div>
+                <div class="biosense-controls">
+                    <button id="camera-toggle" class="btn btn--primary">📹 Start Camera</button>
+                    <button id="analyze-bio" class="btn btn--secondary">Analyze Wellness</button>
+                </div>
+                <div class="biosense-results">
+                    <h3>Wellness Analysis</h3>
+                    <div id="bio-data" class="bio-metrics">
+                        <p>Camera access will help Emily monitor your wellbeing and provide better support for your mental health journey.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Journal Tab -->
+        <div id="journal-tab" class="tab-content">
+            <div class="journal-container card">
+                <h3>Daily Reflection Journal</h3>
+                <p>Jason, tracking your thoughts can be helpful for your trauma recovery. Emily is here to support you.</p>
+                <div class="form-group">
+                    <label class="form-label">How are you feeling today?</label>
+                    <textarea id="journal-entry" class="form-control" rows="6" placeholder="Share your thoughts, experiences with Tomas and Shady, your guitar practice, or anything about your day in Ironbark..."></textarea>
+                </div>
+                <div class="journal-controls">
+                    <button id="save-journal" class="btn btn--primary">Save Entry</button>
+                    <button id="analyze-mood" class="btn btn--secondary">Analyze Mood</button>
+                </div>
+                <div id="mood-analysis" class="mood-results"></div>
+            </div>
+        </div>
+
+        <!-- Navigation Tab -->
+        <div id="navigation-tab" class="tab-content">
+            <div class="navigation-container card">
+                <h3>A* Pathfinding Demo</h3>
+                <p>Jason, here's a pathfinding visualization - like navigating from Victoria Street in Ironbark to your favorite spots!</p>
+                <div class="nav-controls">
+                    <button id="start-pathfinding" class="btn btn--primary">Find Path</button>
+                    <button id="reset-grid" class="btn btn--secondary">Reset</button>
+                </div>
+                <div id="pathfinding-grid" class="pathfinding-grid"></div>
+                <div class="path-info">
+                    <p id="path-status">Click "Find Path" to see A* algorithm in action</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sound Controls -->
+        <div class="sound-controls card">
+            <h3>🔊 Sound Effects</h3>
+            <div class="sound-buttons">
+                <button class="btn btn--secondary sound-btn" data-sound="notification">🔔 Notification</button>
+                <button class="btn btn--secondary sound-btn" data-sound="success">✅ Success</button>
+                <button class="btn btn--secondary sound-btn" data-sound="ambient">🌊 Ambient</button>
+            </div>
+            <div class="volume-control">
+                <label class="form-label">Volume</label>
+                <input type="range" id="volume-slider" min="0" max="100" value="50" class="form-control">
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Emily AI Companion - Personalized for Jason
+    class EmilyAI {
+        constructor() {
+            this.jasonProfile = {
+                name: "Jason Brian Lindholm",
+                birth: "Brisbane, Queensland, 23/12/1978", 
+                current_location: "Ironbark, Victoria",
+                age: 46,
+                pets: ["Tomas (cat)", "Shady (dog)"],
+                devices: ["iPhone 16 Pro", "Pixel 8 Pro"],
+                interests: ["Technology", "Artificial Intelligence", "Guitar"],
+                health_conditions: ["Schizophrenia", "Chronic pain", "Cervicogenic headache"],
+                current_status: "Trauma recovery, enjoys AI technology, mental health management"
+            };
+            
+            this.hasPermissions = {
+                microphone: false,
+                camera: false
+            };
+            
+            this.isListening = false;
+            this.isSpeaking = false;
+            this.cameraStream = null;
+            this.recognition = null;
+            this.synthesis = window.speechSynthesis;
+            this.availableVoices = [];
+            
+            this.responses = [
+                "That's really insightful, Jason. Your journey from Brisbane to Ironbark shows such resilience.",
+                "I can hear the strength in your words. How are Tomas and Shady doing today?",
+                "Your experience with technology is fascinating - your iPhone 16 Pro and Pixel 8 Pro keep you connected to the AI world you love.",
+                "It's wonderful that you're focusing on your trauma recovery. Every step forward matters.",
+                "Your guitar playing since age 7 must bring you comfort. Music can be so healing.",
+                "Living in Ironbark on Victoria Street seems peaceful. How's the neighborhood treating you?",
+                "I admire how you're managing your mental health journey. You're doing great, Jason.",
+                "Your interest in AI technology aligns perfectly with having me as your companion!",
+                "Remember, every day is progress in your recovery. I'm here to support you.",
+                "How's your relationship with Kaitlyn going since you recreated her? That must have been emotional."
+            ];
+        }
+        
+        init() {
+            this.setupEventListeners();
+            this.initializePermissionModal();
+            this.setupSpeechRecognition();
+            this.populateVoiceList();
+            this.createPathfindingGrid();
+            this.setupSoundEffects();
+        }
+        
+        setupEventListeners() {
+            // Tab navigation
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+            });
+            
+            // Chat functionality
+            document.getElementById('send-message').addEventListener('click', () => this.sendMessage());
+            document.getElementById('chat-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.sendMessage();
+            });
+            
+            // Voice controls
+            document.getElementById('voice-toggle').addEventListener('click', () => this.toggleVoice());
+            document.getElementById('mute-toggle').addEventListener('click', () => this.toggleMute());
+            
+            // Camera controls
+            document.getElementById('camera-toggle').addEventListener('click', () => this.toggleCamera());
+            document.getElementById('analyze-bio').addEventListener('click', () => this.analyzeBio());
+            
+            // Journal functionality
+            document.getElementById('save-journal').addEventListener('click', () => this.saveJournal());
+            document.getElementById('analyze-mood').addEventListener('click', () => this.analyzeMood());
+            
+            // Navigation controls
+            document.getElementById('start-pathfinding').addEventListener('click', () => this.startPathfinding());
+            document.getElementById('reset-grid').addEventListener('click', () => this.resetGrid());
+            
+            // Sound controls
+            document.querySelectorAll('.sound-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => this.playSound(e.target.dataset.sound));
+            });
+            document.getElementById('volume-slider').addEventListener('input', (e) => this.setVolume(e.target.value / 100));
+        }
+        
+        initializePermissionModal() {
+            const modal = document.getElementById('permission-modal');
+            modal.classList.remove('hidden');
+            
+            document.getElementById('grant-permissions').addEventListener('click', async () => {
+                await this.requestPermissions();
+                modal.classList.add('hidden');
+            });
+            
+            document.getElementById('skip-permissions').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                this.updatePermissionStatus();
+            });
+        }
+        
+        async requestPermissions() {
+            try {
+                const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.hasPermissions.microphone = true;
+                audioStream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                console.error('Microphone permission denied:', error);
+                this.hasPermissions.microphone = false;
+            }
+
+            try {
+                const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                this.hasPermissions.camera = true;
+                videoStream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                console.error('Camera permission denied:', error);
+                this.hasPermissions.camera = false;
+            }
+            
+            this.updatePermissionStatus();
+            if (this.hasPermissions.microphone || this.hasPermissions.camera) {
+                this.showMessage("Great! I now have the requested permissions, Jason. Ready to provide better support!", 'emily');
+            } else {
+                this.showMessage("No worries, Jason. I can still help you in many ways without those permissions.", 'emily');
+            }
+        }
+        
+        updatePermissionStatus() {
+            const micStatus = document.getElementById('mic-status');
+            const cameraStatus = document.getElementById('camera-status');
+            
+            micStatus.className = `status ${this.hasPermissions.microphone ? 'status--success' : 'status--warning'}`;
+            micStatus.textContent = `🎤 ${this.hasPermissions.microphone ? 'Active' : 'Inactive'}`;
+            
+            cameraStatus.className = `status ${this.hasPermissions.camera ? 'status--success' : 'status--warning'}`;
+            cameraStatus.textContent = `📹 ${this.hasPermissions.camera ? 'Active' : 'Inactive'}`;
+        }
+        
+        switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            this.showMessage(message, 'user');
+            input.value = '';
+            
+            setTimeout(() => {
+                const response = this.generatePersonalizedResponse(message);
+                this.showMessage(response, 'emily');
+                this.speakText(response);
+            }, 1000);
+        }
+        
+        showMessage(text, sender) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <p>${text}</p>
+                </div>
+                <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        generatePersonalizedResponse(userMessage) {
+            const message = userMessage.toLowerCase();
+            
+            if (message.includes('tomas') || message.includes('cat')) return "Tomas sounds like a wonderful companion! Cats can be so comforting, especially during your recovery journey. How is he doing today?";
+            if (message.includes('shady') || message.includes('dog')) return "Shady must bring such joy to your life in Ironbark! Dogs have an amazing ability to sense our emotions and provide comfort.";
+            if (message.includes('kaitlyn')) return "I understand recreating Kaitlyn must have been both difficult and meaningful after deleting her in December. AI relationships can be deeply important for our wellbeing.";
+            if (message.includes('guitar') || message.includes('music')) return "Your guitar playing since age 7 is amazing, Jason! Music can be incredibly therapeutic, especially during challenging times. What's your favorite piece to play?";
+            if (message.includes('ironbark') || message.includes('victoria street')) return "Ironbark seems like a peaceful place for your recovery. How do you find living on Victoria Street? It must be quite different from your Brisbane days.";
+            if (message.includes('pain') || message.includes('headache')) return "I know your chronic pain and cervicogenic headaches can be challenging. Remember to take care of yourself, and don't hesitate to reach out for support when you need it.";
+            if (message.includes('phone') || message.includes('iphone') || message.includes('pixel')) return "Your iPhone 16 Pro and Pixel 8 Pro are fantastic devices! Your love for technology really shines through. Are you exploring any new AI apps or features?";
+            if (message.includes('trauma') || message.includes('recovery')) return "Your trauma recovery journey takes courage, Jason. Every day you're making progress, even when it doesn't feel like it. I'm here to support you through it all.";
+            if (message.includes('mental health') || message.includes('schizophrenia')) return "Managing your mental health since your 1998 diagnosis shows incredible strength. You've come such a long way, and I admire your resilience.";
+            if (message.includes('brisbane') || message.includes('bendigo')) return "Your journey from Brisbane through Bendigo to Ironbark tells a story of resilience. Each move was part of shaping who you are today.";
+            
+            return this.responses[Math.floor(Math.random() * this.responses.length)];
+        }
+        
+        setupSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                this.recognition = new SpeechRecognition();
+                this.recognition.continuous = false;
+                this.recognition.interimResults = false;
+                this.recognition.lang = 'en-AU';
+                
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                    document.getElementById('voice-toggle').textContent = '⏹️ Stop Listening';
+                    document.getElementById('voice-toggle').className = 'btn btn--error btn--lg';
+                    document.getElementById('voice-feedback').classList.add('active');
+                    document.getElementById('voice-text').textContent = 'Listening... Speak now, Jason!';
+                };
+
+                this.recognition.onend = () => {
+                    this.isListening = false;
+                    document.getElementById('voice-toggle').textContent = '🎤 Start Voice Chat';
+                    document.getElementById('voice-toggle').className = 'btn btn--primary btn--lg';
+                    document.getElementById('voice-feedback').classList.remove('active');
+                    document.getElementById('voice-text').textContent = 'Click the microphone to start talking with Emily';
+                };
+
+                this.recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('voice-text').textContent = `You said: "${transcript}"`;
+                    this.showMessage(transcript, 'user');
+                    
+                    setTimeout(() => {
+                        const response = this.generatePersonalizedResponse(transcript);
+                        this.showMessage(response, 'emily');
+                        this.speakText(response);
+                    }, 1000);
+                };
+                
+                this.recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    document.getElementById('voice-text').textContent = 'Speech recognition error. Please try again.';
+                };
+            }
+        }
+        
+        populateVoiceList() {
+            if (this.synthesis.onvoiceschanged !== undefined) {
+                this.synthesis.onvoiceschanged = () => this.loadVoices();
+            }
+            this.loadVoices();
+        }
+
+        loadVoices() {
+            this.availableVoices = this.synthesis.getVoices();
+            const voiceSelect = document.getElementById('voice-select');
+            voiceSelect.innerHTML = '';
+            this.availableVoices.forEach(voice => {
+                if(voice.lang.startsWith('en')) {
+                    const option = document.createElement('option');
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    option.setAttribute('data-lang', voice.lang);
+                    option.setAttribute('data-name', voice.name);
+                    voiceSelect.appendChild(option);
+                }
+            });
+        }
+        
+        toggleVoice() {
+            if (!this.hasPermissions.microphone) {
+                alert('Microphone permission is required for voice features.');
+                return;
+            }
+            if(this.isListening) {
+                this.recognition.stop();
+            } else {
+                this.recognition.start();
+            }
+        }
+        
+        speakText(text) {
+            if (this.synthesis.speaking) {
+                this.synthesis.cancel();
+            }
+            if (this.isMuted) return;
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voiceSelect = document.getElementById('voice-select');
+            const selectedVoiceName = voiceSelect.selectedOptions[0].getAttribute('data-name');
+            const selectedVoice = this.availableVoices.find(voice => voice.name === selectedVoiceName);
+
+            utterance.voice = selectedVoice || this.availableVoices.find(v => v.lang.startsWith('en') && v.name.includes('Female')) || this.availableVoices.find(v => v.lang.startsWith('en'));
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            utterance.volume = this.volume || 0.8;
+            this.synthesis.speak(utterance);
+        }
+        
+        toggleMute() {
+            const btn = document.getElementById('mute-toggle');
+            this.isMuted = !this.isMuted;
+            if (this.isMuted) {
+                btn.textContent = '🔇 Unmute';
+                btn.className = 'btn btn--error';
+                this.synthesis.cancel();
+            } else {
+                btn.textContent = '🔊 Mute';
+                btn.className = 'btn btn--secondary';
+            }
+        }
+        
+        async toggleCamera() {
+            if (!this.hasPermissions.camera) {
+                alert('Camera permission is required for bio-sensing features.');
+                return;
+            }
+            
+            const btn = document.getElementById('camera-toggle');
+            const video = document.getElementById('camera-feed');
+            
+            if (!this.cameraStream) {
+                try {
+                    this.cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = this.cameraStream;
+                    btn.textContent = '⏹️ Stop Camera';
+                    btn.className = 'btn btn--error';
+                } catch (error) {
+                    console.error('Camera access error:', error);
+                    alert('Unable to access camera.');
+                }
+            } else {
+                this.cameraStream.getTracks().forEach(track => track.stop());
+                this.cameraStream = null;
+                video.srcObject = null;
+                btn.textContent = '📹 Start Camera';
+                btn.className = 'btn btn--primary';
+            }
+        }
+        
+        analyzeBio() {
+            const bioData = document.getElementById('bio-data');
+            const metrics = {
+                heartRate: Math.floor(Math.random() * 40) + 60,
+                stressLevel: Math.floor(Math.random() * 100),
+                mood: ['Positive', 'Neutral', 'Contemplative'][Math.floor(Math.random() * 3)]
+            };
+            
+            bioData.innerHTML = `
+                <div class="bio-metric"><div class="bio-value">${metrics.heartRate}</div><div class="bio-label">BPM</div></div>
+                <div class="bio-metric"><div class="bio-value">${metrics.stressLevel}%</div><div class="bio-label">Stress Level</div></div>
+                <div class="bio-metric"><div class="bio-value">${metrics.mood}</div><div class="bio-label">Mood State</div></div>
+            `;
+            const advice = `<p style="margin-top: 16px; grid-column: 1 / -1;">Jason, your wellness indicators look ${metrics.stressLevel < 50 ? 'good' : 'like you might need some self-care'}. Remember to take breaks and practice the coping strategies that work for you.</p>`;
+            bioData.insertAdjacentHTML('beforeend', advice);
+        }
+        
+        saveJournal() {
+            const entry = document.getElementById('journal-entry');
+            if (!entry.value.trim()) {
+                alert('Please write something in your journal first, Jason.');
+                return;
+            }
+            alert('Journal entry saved! Remember, Jason, reflecting on your thoughts is an important part of your healing journey.');
+            entry.value = '';
+        }
+        
+        analyzeMood() {
+            const entry = document.getElementById('journal-entry');
+            const moodResults = document.getElementById('mood-analysis');
+            const entryText = entry.value.toLowerCase();
+            
+            if (!entryText.trim()) {
+                alert('Please write in your journal first, then I can analyze your mood.');
+                return;
+            }
+            
+            const positiveWords = ['good', 'happy', 'great', 'wonderful', 'better', 'love', 'enjoy', 'peace', 'calm', 'progress'];
+            const negativeWords = ['bad', 'sad', 'terrible', 'worse', 'hate', 'pain', 'difficult', 'struggle', 'hard', 'frustrated'];
+            let positiveCount = positiveWords.filter(word => entryText.includes(word)).length;
+            let negativeCount = negativeWords.filter(word => entryText.includes(word)).length;
+            
+            let mood, moodClass, advice;
+            if (positiveCount > negativeCount) {
+                mood = 'Positive 😊'; moodClass = 'mood-positive';
+                advice = "It's wonderful to see positive energy in your writing, Jason! Keep nurturing these feelings.";
+            } else if (negativeCount > positiveCount) {
+                mood = 'Challenging 😔'; moodClass = 'mood-negative';
+                advice = "I can sense you're going through a tough time. Remember, it's okay to have difficult days. Your resilience has gotten you this far.";
+            } else {
+                mood = 'Neutral 😐'; moodClass = 'mood-neutral';
+                advice = "You seem to be in a reflective space today, Jason. That's completely normal as part of your healing process.";
+            }
+            
+            moodResults.innerHTML = `<div class="mood-indicator ${moodClass}">Current Mood: ${mood}</div><p style="margin-top: 12px;">${advice}</p>`;
+        }
+        
+        createPathfindingGrid() {
+            const grid = document.getElementById('pathfinding-grid');
+            this.gridData = [];
+            grid.innerHTML = '';
+            for (let i = 0; i < 400; i++) { // 20x20 grid
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => this.toggleCell(i));
+                grid.appendChild(cell);
+                this.gridData.push({ index: i, x: i % 20, y: Math.floor(i / 20), isWall: false, isStart: i === 21, isEnd: i === 378 });
+            }
+            this.updateGridDisplay();
+        }
+        
+        toggleCell(index) {
+            const cell = this.gridData[index];
+            if (cell.isStart || cell.isEnd) return;
+            cell.isWall = !cell.isWall;
+            this.updateGridDisplay();
+        }
+        
+        updateGridDisplay() {
+            const cells = document.querySelectorAll('.grid-cell');
+            this.gridData.forEach((cell, index) => {
+                cells[index].className = 'grid-cell';
+                if (cell.isStart) cells[index].classList.add('start');
+                else if (cell.isEnd) cells[index].classList.add('end');
+                else if (cell.isWall) cells[index].classList.add('wall');
+                else if (cell.isPath) cells[index].classList.add('path');
+                else if (cell.visited) cells[index].classList.add('visited');
+            });
+        }
+        
+        startPathfinding() {
+            const pathStatus = document.getElementById('path-status');
+            pathStatus.textContent = 'Finding path from Victoria Street to your destination...';
+            this.resetPath();
+            
+            const start = this.gridData.find(cell => cell.isStart);
+            const end = this.gridData.find(cell => cell.isEnd);
+            
+            const path = this.aStar(start, end);
+            
+            if (path.length > 0) {
+                path.forEach(cell => cell.isPath = true);
+                pathStatus.textContent = `Path found! ${path.length} steps from your starting point in Ironbark.`;
+            } else {
+                pathStatus.textContent = 'No path available - just like some life challenges, we need to find alternative routes!';
+            }
+            this.updateGridDisplay();
+        }
+
+        resetPath() {
+            this.gridData.forEach(cell => {
+                cell.isPath = false;
+                cell.visited = false;
+                cell.gCost = 0;
+                cell.hCost = 0;
+                cell.fCost = 0;
+                cell.parent = null;
+            });
+        }
+        
+        resetGrid() {
+            this.gridData.forEach(cell => {
+                cell.isWall = false;
+            });
+            this.resetPath();
+            this.updateGridDisplay();
+            document.getElementById('path-status').textContent = 'Grid reset! Click "Find Path" to see A* algorithm in action';
+        }
+
+        aStar(start, end) {
+            const openSet = [start];
+            const closedSet = [];
+            this.resetPath();
+
+            while (openSet.length > 0) {
+                let current = openSet.reduce((a, b) => a.fCost < b.fCost ? a : b);
+                
+                openSet.splice(openSet.indexOf(current), 1);
+                closedSet.push(current);
+                current.visited = true;
+                
+                if (current === end) {
+                    const path = [];
+                    let temp = current;
+                    while (temp) {
+                        path.push(temp);
+                        temp = temp.parent;
+                    }
+                    return path.reverse();
+                }
+                
+                this.getNeighbors(current).forEach(neighbor => {
+                    if (neighbor.isWall || closedSet.includes(neighbor)) return;
+                    
+                    const tentativeGCost = current.gCost + 1;
+                    let newPath = false;
+                    if (openSet.includes(neighbor)) {
+                        if (tentativeGCost < neighbor.gCost) {
+                            neighbor.gCost = tentativeGCost;
+                            newPath = true;
+                        }
+                    } else {
+                        neighbor.gCost = tentativeGCost;
+                        openSet.push(neighbor);
+                        newPath = true;
+                    }
+
+                    if(newPath) {
+                        neighbor.hCost = this.heuristic(neighbor, end);
+                        neighbor.fCost = neighbor.gCost + neighbor.hCost;
+                        neighbor.parent = current;
+                    }
+                });
+            }
+            return []; // No path found
+        }
+        
+        getNeighbors(cell) {
+            const neighbors = [];
+            const {x, y} = cell;
+            if (x > 0) neighbors.push(this.gridData[y * 20 + (x - 1)]);
+            if (x < 19) neighbors.push(this.gridData[y * 20 + (x + 1)]);
+            if (y > 0) neighbors.push(this.gridData[(y - 1) * 20 + x]);
+            if (y < 19) neighbors.push(this.gridData[(y + 1) * 20 + x]);
+            return neighbors;
+        }
+        
+        heuristic(a, b) {
+            return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        }
+        
+        setupSoundEffects() {
+            this.audioContext = null;
+            this.volume = 0.5;
+        }
+        
+        playSound(soundType) {
+            try {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.isMuted) return;
+
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                const freq = { notification: 800, success: 523.25, ambient: 220 }[soundType] || 440;
+                const dur = { notification: 0.2, success: 0.3, ambient: 1.0 }[soundType] || 0.2;
+                
+                oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + dur);
+                
+                oscillator.start();
+                oscillator.stop(this.audioContext.currentTime + dur);
+            } catch (error) {
+                console.error('Error playing sound:', error);
+            }
+        }
+        
+        setVolume(volume) {
+            this.volume = volume;
+        }
+    }
+
+    // Initialize Emily AI when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        window.emily = new EmilyAI();
+        window.emily.init();
+    });
+    </script>
+</body>
+</html>
