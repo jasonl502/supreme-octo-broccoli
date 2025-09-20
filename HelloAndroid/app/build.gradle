@@ -1,6 +1,14 @@
+// Top-level build file for HelloAndroid app
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+}
+
+// Library version variables for easier updates
+ext {
+    coreKtxVersion = '1.13.1' // Update to latest stable if available
+    appCompatVersion = '1.7.0' // Update to latest stable if available
+    materialVersion = '1.12.0' // Update to latest stable if available
 }
 
 android {
@@ -17,14 +25,24 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            // Enable code shrinking and resource shrinking for smaller APKs
+            minifyEnabled true // Set to true if ProGuard rules are configured
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    // Lint options to catch issues early
+    lintOptions {
+        abortOnError true
+        warningsAsErrors true
+        checkReleaseBuilds true
     }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
+    // Use variables for easier version management
+    implementation "androidx.core:core-ktx:$coreKtxVersion"
+    implementation "androidx.appcompat:appcompat:$appCompatVersion"
+    implementation "com.google.android.material:material:$materialVersion"
 }
