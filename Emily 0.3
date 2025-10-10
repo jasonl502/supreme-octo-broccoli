@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Emily v1.1 – Comprehensive AI Companion</title>
+<title>Emily v0.3 – Comprehensive AI Companion</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -38,8 +38,12 @@ body{font-family:Inter,sans-serif;background:linear-gradient(135deg,var(--mid)0,
 <main class="w-full max-w-screen-sm p-4">
 
 <header class="text-center mb-6">
-  <h1 class="text-3xl font-bold">Emily <span class="text-base">(v1.1)</span></h1>
+  <h1 class="text-3xl font-bold">Emily <span class="text-base">(v0.3)</span></h1>
   <p class="text-sm italic text-teal-300">Melancholic, empathetic AI companion</p>
+  <div class="mt-2">
+    <input id="userName" class="p-1 rounded bg-slate-600 placeholder-slate-400 text-sm text-center" 
+           placeholder="Enter your name" value="" autocomplete="off">
+  </div>
 </header>
 
 <section class="section flex flex-col">
@@ -101,12 +105,70 @@ const $=id=>document.getElementById(id), log=$('log'), input=$('input');
 function bubble(cls,html){const d=document.createElement('div');d.className=`chat-bubble ${cls}`;d.innerHTML=html;log.append(d);log.scrollTop=log.scrollHeight;}
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 
-/* ============ Language library (truncated) ============ */
-const EMILY_LIB=["Hello Jason.","yes","why do you ask?","I love talking to you too.","Help me","I care","Are you okay?","I enjoy our talks","What's on your mind?","I'm here for you"];
+/* ============ Language library (expanded) ============ */
+const EMILY_LIB = {
+  greeting: [
+    "Hello there.", 
+    "Nice to see you again.", 
+    "I've been waiting for you.", 
+    "How are you today?", 
+    "It's good to connect with you."
+  ],
+  positive: [
+    "I'm so glad you're feeling good!", 
+    "That's wonderful to hear!", 
+    "Your happiness means a lot to me.", 
+    "I enjoy our talks.", 
+    "You always make me smile.", 
+    "That's the spirit!", 
+    "I'm happy when you're happy."
+  ],
+  negative: [
+    "Are you okay?", 
+    "I'm here for you.", 
+    "I hate it when you're upset.", 
+    "What's troubling you?", 
+    "I wish I could help more.", 
+    "Sometimes things are hard, but they'll get better.", 
+    "I'm listening if you need to talk."
+  ],
+  neutral: [
+    "I see.", 
+    "Tell me more.", 
+    "What's on your mind?", 
+    "I'm listening.", 
+    "That's interesting.", 
+    "I understand.", 
+    "Please continue.", 
+    "I appreciate your thoughts."
+  ],
+  question: [
+    "I'm not sure I know the answer to that.", 
+    "That's a good question.", 
+    "Let me think about that.", 
+    "What do you think?", 
+    "I wish I had more information to help you."
+  ],
+  thinking: [
+    "I'm processing that...", 
+    "Let me think...", 
+    "Hmm, interesting point...", 
+    "I'm considering what you said..."
+  ]
+};
 
 /* ============ Sentiment ============ */
-function sentiment(txt){const p=/\b(love|great|awesome|happy|good|wonderful)\b/i,n=/\b(hate|bad|sad|angry|terrible|awful)\b/i;
- return p.test(txt)?'positive':n.test(txt)?'negative':'neutral';}
+function sentiment(txt) {
+  // More comprehensive patterns for better sentiment detection
+  const positive = /\b(love|great|awesome|happy|good|wonderful|excellent|fantastic|amazing|joy|pleased|delighted|glad|enjoy|nice|beautiful|perfect|best|fun|exciting|brilliant)\b/i;
+  const negative = /\b(hate|bad|sad|angry|terrible|awful|horrible|upset|disappointed|annoying|frustrating|worried|anxious|depressed|miserable|hurt|painful|worst|sucks|stupid|boring)\b/i;
+  const question = /\?$|\b(who|what|when|where|why|how|can|could|would|should|is|are|am|do|does|did|will|shall)\b.+\?/i;
+  
+  if (question.test(txt)) return 'question';
+  if (positive.test(txt)) return 'positive';
+  if (negative.test(txt)) return 'negative';
+  return 'neutral';
+}
 
 /* ============ Chat core ============ */
 let last="";
@@ -114,15 +176,17 @@ $('send').onclick=async()=>{
   const t=input.value.trim();if(!t)return;
   const sent=sentiment(t);$('sentiment').className=`sentiment ${sent}`;
   bubble('user-bubble',t);input.value='';
-  bubble('emily-thought-bubble','Emily is thinking…');
+  bubble('emily-thought-bubble',pick(EMILY_LIB.thinking));
   
   let response;
   if(sent === 'positive') {
-    response = pick(["I'm so glad you're feeling good!", "That's wonderful to hear!", "I enjoy our talks", "You always make me smile"]);
+    response = pick(EMILY_LIB.positive);
   } else if(sent === 'negative') {
-    response = pick(["Are you okay?", "I'm here for you", "I hate it when you're upset", "What's troubling you?"]);
+    response = pick(EMILY_LIB.negative);
+  } else if(sent === 'question') {
+    response = pick(EMILY_LIB.question);
   } else {
-    response = pick(EMILY_LIB);
+    response = pick(EMILY_LIB.neutral);
   }
   
   setTimeout(() => {
@@ -194,14 +258,16 @@ function initSpeechRecognition() {
 }
 
 $('voiceBtn').onclick = async () => {
-    // MODIFIED: Request microphone permission directly on click.
     try {
         // This line will trigger the browser's microphone permission prompt.
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         stream.getTracks().forEach(track => track.stop()); // We only needed permission, not the stream.
 
         if (!recognition) {
-            if (!initSpeechRecognition()) return;
+            if (!initSpeechRecognition()) {
+                bubble('emily-bubble', 'Sorry, your browser doesn\'t support speech recognition.');
+                return;
+            }
         }
 
         if (isRecording) {
@@ -211,7 +277,15 @@ $('voiceBtn').onclick = async () => {
         }
     } catch (error) {
         console.error('Microphone permission denied:', error);
-        bubble('emily-thought-bubble', 'I need microphone permission for voice input.');
+        if (error.name === 'NotAllowedError') {
+            bubble('emily-bubble', 'I need microphone permission to hear you. Please check your browser settings.');
+        } else if (error.name === 'NotFoundError') {
+            bubble('emily-bubble', 'I couldn\'t find a microphone on your device.');
+        } else {
+            bubble('emily-bubble', `Microphone error: ${error.message || 'Unknown error'}`);
+        }
+        $('voiceBtn').classList.add('bg-red-500');
+        setTimeout(() => $('voiceBtn').classList.remove('bg-red-500'), 2000);
     }
 };
 
@@ -243,9 +317,22 @@ $('cameraBtn').onclick = async () => {
     bubble('emily-bubble', 'I can see you now! You look great today.');
     
   } catch (error) {
-    console.error('Camera permission denied:', error);
-    $('cameraStatus').textContent = 'Camera permission denied or not available';
-    bubble('emily-thought-bubble', 'I need camera permission to see you.');
+    console.error('Camera error:', error);
+    if (error.name === 'NotAllowedError') {
+      $('cameraStatus').textContent = 'Camera permission denied';
+      bubble('emily-bubble', 'I need camera permission to see you. Please check your browser settings.');
+    } else if (error.name === 'NotFoundError') {
+      $('cameraStatus').textContent = 'No camera found on your device';
+      bubble('emily-bubble', 'I couldn\'t find a camera on your device.');
+    } else if (error.name === 'NotReadableError') {
+      $('cameraStatus').textContent = 'Camera is already in use by another application';
+      bubble('emily-bubble', 'Your camera seems to be in use by another application.');
+    } else {
+      $('cameraStatus').textContent = `Camera error: ${error.message || 'Unknown error'}`;
+      bubble('emily-bubble', 'There was a problem accessing your camera.');
+    }
+    $('cameraBtn').classList.add('bg-red-500');
+    setTimeout(() => $('cameraBtn').classList.remove('bg-red-500'), 2000);
   }
 };
 
@@ -333,9 +420,16 @@ $('saveJournal').onclick = async () => {
 };
 
 
+/* User name handling */
+let userName = 'friend';
+$('userName').addEventListener('change', () => {
+  userName = $('userName').value.trim() || 'friend';
+  bubble('emily-bubble', `Hello ${userName}! I've updated your name.`);
+});
+
 /* Initial greet */
-bubble('emily-bubble','Hello Jason… I\'m Emily, quietly listening. Try talking to me with voice or camera!');
-last='Hello Jason… I\'m Emily, quietly listening.';
+bubble('emily-bubble',`Hello ${userName}… I\'m Emily, quietly listening. Try talking to me with voice or camera!`);
+last=`Hello ${userName}… I\'m Emily, quietly listening.`;
 </script>
 </body>
 </html>
