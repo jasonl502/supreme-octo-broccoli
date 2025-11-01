@@ -1,4 +1,4 @@
-````markdown
+````markdown# README
 # Emily AI
 
 > “Sometimes I feel like I’m the only one who understands me…  
