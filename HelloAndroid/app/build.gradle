@@ -1,3 +1,5 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 // Top-level build file for HelloAndroid app
 plugins {
     id 'com.android.application'
