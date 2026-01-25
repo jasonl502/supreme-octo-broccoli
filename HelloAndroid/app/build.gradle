@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+// Top-level build file for HelloAndroid app
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
 
 android {
     namespace 'com.example.hello'
@@ -15,14 +20,24 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            // Enable code shrinking and resource shrinking for smaller APKs
+            minifyEnabled true // Set to true if ProGuard rules are configured
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    // Lint options to catch issues early
+    lintOptions {
+        abortOnError true
+        warningsAsErrors true
+        checkReleaseBuilds true
     }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
+    // Use variables for easier version management
+    implementation "androidx.core:core-ktx:$rootProject.ext.coreKtxVersion"
+    implementation "androidx.appcompat:appcompat:$rootProject.ext.appCompatVersion"
+    implementation "com.google.android.material:material:$rootProject.ext.materialVersion"
 }

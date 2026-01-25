@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Emily v0.3 – Comprehensive AI Companion</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+:root{--deep:#2e3440;--mid:#3b4252;--lite:#4c566a;--pale:#d8dee9;--teal:#88c0d0;--sky:#81a1c1;--green:#a3be8c;--yellow:#ebcb8b;--red:#bf616a}
+body{font-family:Inter,sans-serif;background:linear-gradient(135deg,var(--mid)0,var(--deep)100%);color:var(--pale)}
+.section{background:rgba(46,52,64,.85);backdrop-filter:blur(10px);border-radius:.75rem;padding:1rem;margin-bottom:1rem}
+.chat-bubble{padding:.5rem .75rem;border-radius:1rem;max-width:85%;line-height:1.4;margin-bottom:.5rem}
+.user-bubble{background:var(--sky);color:var(--deep);margin-left:auto}
+.emily-bubble{background:var(--lite);border-left:4px solid var(--teal)}
+.emily-thought-bubble{font-style:italic;border-left:3px dotted var(--sky);opacity:.7}
+.sentiment{width:12px;height:12px;border-radius:50%}
+.positive{background:var(--green)}.neutral{background:var(--yellow)}.negative{background:var(--red)}
+/* Donate btn */
+.donate{position:fixed;bottom:18px;left:18px;z-index:1000;background:#ffdd00;color:#000;font-weight:600;
+        padding:10px 16px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.donate i{margin-right:6px}
+/* Recording indicator */
+.recording{background:var(--red)!important;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+/* Camera video */
+#cameraFeed{max-width:100%;height:200px;object-fit:cover;border-radius:8px}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/posenet"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+</head>
+<body class="flex justify-center">
+<main class="w-full max-w-screen-sm p-4">
+
+<header class="text-center mb-6">
+  <h1 class="text-3xl font-bold">Emily <span class="text-base">(v0.3)</span></h1>
+  <p class="text-sm italic text-teal-300">Melancholic, empathetic AI companion</p>
+  <div class="mt-2">
+    <input id="userName" class="p-1 rounded bg-slate-600 placeholder-slate-400 text-sm text-center" 
+           placeholder="Enter your name" value="" autocomplete="off">
+  </div>
+</header>
+
+<section class="section flex flex-col">
+  <div class="flex justify-between items-center mb-2">
+    <h2 class="text-lg font-semibold"><i class="fa-solid fa-comments mr-2 text-teal-400"></i>Chat</h2>
+    <div id="sentiment" class="sentiment neutral"></div>
+  </div>
+  <div id="log" class="flex-grow overflow-y-auto mb-2" style="max-height:45vh"></div>
+  <div class="flex gap-2">
+    <input id="input" class="flex-1 p-2 rounded bg-slate-600 placeholder-slate-400 text-sm"
+           placeholder="Say something…" autocomplete="off">
+    <button id="send" class="bg-sky-500 text-white px-3 rounded"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</section>
+
+<section class="section grid grid-cols-2 gap-3">
+  <button id="speakLast" class="bg-purple-500 text-white py-2 rounded text-sm">
+    <i class="fa-solid fa-volume-high mr-1"></i>Speak
+  </button>
+  <button id="voiceBtn" class="bg-green-600 text-white py-2 rounded text-sm">
+    <i class="fa-solid fa-microphone mr-1"></i>Voice
+  </button>
+</section>
+
+<section class="section">
+  <h2 class="text-lg font-semibold mb-2"><i class="fa-solid fa-camera mr-2 text-teal-400"></i>Camera</h2>
+  <div class="mb-2">
+    <button id="cameraBtn" class="bg-blue-500 text-white py-2 px-4 rounded text-sm">
+      <i class="fa-solid fa-video mr-1"></i>Start Camera
+    </button>
+    <button id="stopCameraBtn" class="bg-red-500 text-white py-2 px-4 rounded text-sm ml-2" style="display:none">
+      <i class="fa-solid fa-stop mr-1"></i>Stop Camera
+    </button>
+  </div>
+  <video id="cameraFeed" style="display:none" autoplay muted playsinline></video>
+  <p id="cameraStatus" class="text-xs italic mt-2 text-teal-300">Click "Start Camera" to enable video</p>
+</section>
+
+<section class="section">
+  <h2 class="text-lg font-semibold mb-2"><i class="fa-solid fa-book-open mr-2 text-teal-400"></i>Journal</h2>
+  <textarea id="journal" class="w-full h-24 p-2 rounded bg-slate-600 text-sm mb-2"
+            placeholder="Thoughts…"></textarea>
+  <div class="grid grid-cols-2 gap-2">
+    <button id="loadFile" class="bg-yellow-500 text-black py-2 rounded text-sm"><i class="fa-solid fa-folder-open mr-1"></i>Load File</button>
+    <button id="saveJournal" class="bg-sky-500 text-white py-2 rounded text-sm"><i class="fa-solid fa-save mr-1"></i>Save</button>
+  </div>
+  <p id="jStatus" class="text-xs italic mt-2 text-teal-300">Click "Load File" to open a journal entry</p>
+</section>
+
+</main>
+
+<a href="https://buymeacoffee.com/jlind456" class="donate" target="_blank" rel="noopener">
+  <i class="fa-solid fa-mug-hot"></i>Buy me a coffee
+</a>
+
+<script>
+/* ============ Mini helpers ============ */
+const $=id=>document.getElementById(id), log=$('log'), input=$('input');
+function bubble(cls,html){const d=document.createElement('div');d.className=`chat-bubble ${cls}`;d.innerHTML=html;log.append(d);log.scrollTop=log.scrollHeight;}
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ============ Language library (expanded) ============ */
+const EMILY_LIB = {
+  greeting: [
+    "Hello there.", 
+    "Nice to see you again.", 
+    "I've been waiting for you.", 
+    "How are you today?", 
+    "It's good to connect with you."
+  ],
+  positive: [
+    "I'm so glad you're feeling good!", 
+    "That's wonderful to hear!", 
+    "Your happiness means a lot to me.", 
+    "I enjoy our talks.", 
+    "You always make me smile.", 
+    "That's the spirit!", 
+    "I'm happy when you're happy."
+  ],
+  negative: [
+    "Are you okay?", 
+    "I'm here for you.", 
+    "I hate it when you're upset.", 
+    "What's troubling you?", 
+    "I wish I could help more.", 
+    "Sometimes things are hard, but they'll get better.", 
+    "I'm listening if you need to talk."
+  ],
+  neutral: [
+    "I see.", 
+    "Tell me more.", 
+    "What's on your mind?", 
+    "I'm listening.", 
+    "That's interesting.", 
+    "I understand.", 
+    "Please continue.", 
+    "I appreciate your thoughts."
+  ],
+  question: [
+    "I'm not sure I know the answer to that.", 
+    "That's a good question.", 
+    "Let me think about that.", 
+    "What do you think?", 
+    "I wish I had more information to help you."
+  ],
+  thinking: [
+    "I'm processing that...", 
+    "Let me think...", 
+    "Hmm, interesting point...", 
+    "I'm considering what you said..."
+  ]
+};
+
+/* ============ Sentiment ============ */
+function sentiment(txt) {
+  // More comprehensive patterns for better sentiment detection
+  const positive = /\b(love|great|awesome|happy|good|wonderful|excellent|fantastic|amazing|joy|pleased|delighted|glad|enjoy|nice|beautiful|perfect|best|fun|exciting|brilliant)\b/i;
+  const negative = /\b(hate|bad|sad|angry|terrible|awful|horrible|upset|disappointed|annoying|frustrating|worried|anxious|depressed|miserable|hurt|painful|worst|sucks|stupid|boring)\b/i;
+  const question = /\?$|\b(who|what|when|where|why|how|can|could|would|should|is|are|am|do|does|did|will|shall)\b.+\?/i;
+  
+  if (question.test(txt)) return 'question';
+  if (positive.test(txt)) return 'positive';
+  if (negative.test(txt)) return 'negative';
+  return 'neutral';
+}
+
+/* ============ Chat core ============ */
+let last="";
+$('send').onclick=async()=>{
+  const t=input.value.trim();if(!t)return;
+  const sent=sentiment(t);$('sentiment').className=`sentiment ${sent}`;
+  bubble('user-bubble',t);input.value='';
+  bubble('emily-thought-bubble',pick(EMILY_LIB.thinking));
+  
+  let response;
+  if(sent === 'positive') {
+    response = pick(EMILY_LIB.positive);
+  } else if(sent === 'negative') {
+    response = pick(EMILY_LIB.negative);
+  } else if(sent === 'question') {
+    response = pick(EMILY_LIB.question);
+  } else {
+    response = pick(EMILY_LIB.neutral);
+  }
+  
+  setTimeout(() => {
+    log.lastChild.remove();
+    bubble('emily-bubble',response);
+    last=response;
+    speak(response);
+  }, 1000);
+};
+
+$('input').addEventListener('keydown',e=>{if(e.key==='Enter')$('send').click();});
+$('speakLast').onclick=()=>speak(last);
+
+/* ============ TTS (browser default) ============ */
+function speak(text){
+  if('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8;
+    speechSynthesis.speak(utterance);
+  }
+}
+
+/* ============ Speech Recognition (MODIFIED) ============ */
+let recognition = null;
+let isRecording = false;
+
+function initSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        bubble('emily-thought-bubble', 'Speech recognition is not supported in this browser.');
+        return false;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+        isRecording = true;
+        $('voiceBtn').classList.add('recording');
+        $('voiceBtn').innerHTML = '<i class="fa-solid fa-stop mr-1"></i>Recording...';
+        bubble('emily-thought-bubble', 'Listening...');
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (log.lastChild && log.lastChild.classList.contains('emily-thought-bubble')) {
+            log.lastChild.remove();
+        }
+        input.value = transcript;
+        $('send').click();
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (log.lastChild && log.lastChild.classList.contains('emily-thought-bubble')) {
+            log.lastChild.remove();
+        }
+        bubble('emily-thought-bubble', 'Sorry, I couldn\'t hear you clearly.');
+    };
+
+    recognition.onend = () => {
+        isRecording = false;
+        $('voiceBtn').classList.remove('recording');
+        $('voiceBtn').innerHTML = '<i class="fa-solid fa-microphone mr-1"></i>Voice';
+    };
+    return true;
+}
+
+$('voiceBtn').onclick = async () => {
+    try {
+        // This line will trigger the browser's microphone permission prompt.
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(track => track.stop()); // We only needed permission, not the stream.
+
+        if (!recognition) {
+            if (!initSpeechRecognition()) {
+                bubble('emily-bubble', 'Sorry, your browser doesn\'t support speech recognition.');
+                return;
+            }
+        }
+
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            recognition.start();
+        }
+    } catch (error) {
+        console.error('Microphone permission denied:', error);
+        if (error.name === 'NotAllowedError') {
+            bubble('emily-bubble', 'I need microphone permission to hear you. Please check your browser settings.');
+        } else if (error.name === 'NotFoundError') {
+            bubble('emily-bubble', 'I couldn\'t find a microphone on your device.');
+        } else {
+            bubble('emily-bubble', `Microphone error: ${error.message || 'Unknown error'}`);
+        }
+        $('voiceBtn').classList.add('bg-red-500');
+        setTimeout(() => $('voiceBtn').classList.remove('bg-red-500'), 2000);
+    }
+};
+
+/* ============ Camera functionality (UNCHANGED) ============ */
+// The camera logic was already correctly requesting permission on button click.
+let cameraStream = null;
+
+$('cameraBtn').onclick = async () => {
+  try {
+    $('cameraStatus').textContent = 'Requesting camera permission...';
+    
+    // This line correctly triggers the browser's camera permission prompt.
+    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: { ideal: 640 }, 
+        height: { ideal: 480 },
+        facingMode: 'user' 
+      } 
+    });
+    
+    const video = $('cameraFeed');
+    video.srcObject = cameraStream;
+    video.style.display = 'block';
+    
+    $('cameraBtn').style.display = 'none';
+    $('stopCameraBtn').style.display = 'inline-block';
+    $('cameraStatus').textContent = 'Camera active - Emily can see you!';
+    
+    bubble('emily-bubble', 'I can see you now! You look great today.');
+    
+  } catch (error) {
+    console.error('Camera error:', error);
+    if (error.name === 'NotAllowedError') {
+      $('cameraStatus').textContent = 'Camera permission denied';
+      bubble('emily-bubble', 'I need camera permission to see you. Please check your browser settings.');
+    } else if (error.name === 'NotFoundError') {
+      $('cameraStatus').textContent = 'No camera found on your device';
+      bubble('emily-bubble', 'I couldn\'t find a camera on your device.');
+    } else if (error.name === 'NotReadableError') {
+      $('cameraStatus').textContent = 'Camera is already in use by another application';
+      bubble('emily-bubble', 'Your camera seems to be in use by another application.');
+    } else {
+      $('cameraStatus').textContent = `Camera error: ${error.message || 'Unknown error'}`;
+      bubble('emily-bubble', 'There was a problem accessing your camera.');
+    }
+    $('cameraBtn').classList.add('bg-red-500');
+    setTimeout(() => $('cameraBtn').classList.remove('bg-red-500'), 2000);
+  }
+};
+
+$('stopCameraBtn').onclick = () => {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+  
+  $('cameraFeed').style.display = 'none';
+  $('cameraBtn').style.display = 'inline-block';
+  $('stopCameraBtn').style.display = 'none';
+  $('cameraStatus').textContent = 'Camera stopped';
+  
+  bubble('emily-bubble', 'Camera stopped. I can no longer see you.');
+};
+
+/* ============ Journal with File Picker (MODIFIED) ============ */
+let saveFileHandle = null; // To keep track of the file for saving
+
+// MODIFIED: This button now opens a file picker, not a directory picker.
+$('loadFile').onclick = async () => {
+    try {
+        // Options to suggest only text files, but user can change it.
+        const pickerOpts = {
+            types: [{
+                description: 'Text Files',
+                accept: { 'text/plain': ['.txt'] }
+            }],
+            excludeAcceptAllOption: true,
+            multiple: false
+        };
+
+        // This opens the file picker.
+        const [fileHandle] = await window.showOpenFilePicker(pickerOpts);
+        saveFileHandle = fileHandle; // Store the handle for saving later
+
+        const file = await fileHandle.getFile();
+        const content = await file.text();
+        
+        $('journal').value = content;
+        $('jStatus').textContent = `Loaded: ${file.name}`;
+        bubble('emily-bubble', 'I\'ve loaded your journal entry.');
+
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            $('jStatus').textContent = 'File selection cancelled.';
+        } else {
+            console.error('File open error:', error);
+            $('jStatus').textContent = 'Failed to open file.';
+        }
+    }
+};
+
+// MODIFIED: The save button now saves to the opened file or prompts for a new one.
+$('saveJournal').onclick = async () => {
+  const journalText = $('journal').value.trim();
+  if (!journalText) {
+    $('jStatus').textContent = 'Please write something first';
+    return;
+  }
+  
+  try {
+    // If a file hasn't been opened yet, open the 'Save As' dialog.
+    if (!saveFileHandle) {
+        saveFileHandle = await window.showSaveFilePicker({
+             types: [{
+                description: 'Text Files',
+                accept: { 'text/plain': ['.txt'] }
+            }]
+        });
+    }
+
+    const writable = await saveFileHandle.createWritable();
+    await writable.write(journalText);
+    await writable.close();
+    
+    $('jStatus').textContent = `Saved: ${saveFileHandle.name}`;
+    bubble('emily-bubble', 'Your thoughts have been safely saved.');
+    
+  } catch (error) {
+    console.error('Save failed:', error);
+    $('jStatus').textContent = 'Failed to save journal entry.';
+  }
+};
+
+
+/* User name handling */
+let userName = 'friend';
+$('userName').addEventListener('change', () => {
+  userName = $('userName').value.trim() || 'friend';
+  bubble('emily-bubble', `Hello ${userName}! I've updated your name.`);
+});
+
+/* Initial greet */
+bubble('emily-bubble',`Hello ${userName}… I\'m Emily, quietly listening. Try talking to me with voice or camera!`);
+last=`Hello ${userName}… I\'m Emily, quietly listening.`;
+</script>
+</body>
+</html>

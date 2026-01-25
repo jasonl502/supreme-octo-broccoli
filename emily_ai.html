@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emily - Offline Personal Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Updated to unpkg for potentially better reliability in sandbox environments -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* --- Animations --- */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.2); opacity: 0; }
+        }
+        
+        @keyframes lip-sync {
+            0%, 100% { height: 2px; }
+            50% { height: 8px; }
+        }
+
+        .avatar-speaking .mouth {
+            animation: lip-sync 0.2s infinite ease-in-out;
+        }
+
+        .listening-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #8B5CF6;
+            animation: pulse-ring 2s infinite;
+        }
+
+        /* --- Layout Transitions --- */
+        .avatar-container {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Minimized State (Sidebar) */
+        .avatar-minimized {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
+
+        /* Active State (Center Screen) */
+        .avatar-active {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            z-index: 50;
+        }
+
+        /* Backdrop for Active Mode */
+        .backdrop-active {
+            position: fixed;
+            inset: 0;
+            background: rgba(17, 24, 39, 0.95);
+            z-index: 40;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Custom Image Avatar */
+        .custom-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        /* --- Scrollbar --- */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-100 transition-colors duration-300 font-sans">
+
+    <!-- Active Mode Backdrop -->
+    <div id="backdrop" class="hidden transition-opacity duration-300"></div>
+
+    <div class="container mx-auto p-4 max-w-7xl h-screen flex flex-col">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center py-4 px-2 border-b dark:border-slate-700">
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold tracking-tight text-purple-700 dark:text-purple-400">Emily</h1>
+                <span class="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-200 rounded-full">Local & Private</span>
+            </div>
+            <div class="flex items-center gap-4 text-sm">
+                <div class="text-right hidden sm:block">
+                    <p class="font-medium">Jason Brian Lindholm</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400" id="clock">Loading...</p>
+                </div>
+                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                    <i data-lucide="moon" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6 overflow-hidden">
+            
+            <!-- Left Column: Avatar & Bio-Sensing -->
+            <div class="lg:col-span-1 flex flex-col gap-6 overflow-y-auto">
+                
+                <!-- Avatar Section -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm flex flex-col items-center justify-center relative">
+                    
+                    <!-- Hidden File Input for Avatar Upload -->
+                    <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="handleAvatarUpload(this)">
+
+                    <div id="avatar-wrapper" class="avatar-container avatar-minimized relative cursor-pointer group" onclick="triggerAvatarUpload()" title="Click to change avatar">
+                        <!-- Container for Avatar Content -->
+                        <div id="avatar-content" class="w-full h-full rounded-full border-4 border-slate-900 overflow-hidden relative shadow-lg bg-yellow-400">
+                            <!-- Default CSS Avatar (Phantom Style) - Rendered by JS if no custom image -->
+                        </div>
+                        
+                        <!-- Edit Overlay -->
+                        <div class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="camera" class="text-white w-6 h-6"></i>
+                        </div>
+
+                        <!-- Listening Indicator -->
+                        <div id="listening-ring" class="hidden listening-ring -inset-2"></div>
+                    </div>
+                    
+                    <div class="mt-4 flex gap-2 w-full justify-center">
+                        <button id="talk-btn" onclick="toggleTalkMode(event)" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="mic"></i> Talk
+                        </button>
+                        <button id="camera-btn" onclick="toggleCamera(event)" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+
+                    <!-- Camera Feed (Hidden by default) -->
+                    <div id="camera-container" class="hidden mt-4 w-full aspect-video bg-black rounded-lg overflow-hidden relative">
+                        <video id="camera-feed" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                        <div class="absolute top-2 right-2 flex gap-1">
+                            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Internal State (Transparency) -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 border-purple-500">
+                    <h3 class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">Internal Monologue</h3>
+                    <div id="internal-state" class="text-sm font-mono text-purple-600 dark:text-purple-300 min-h-[60px]">
+                        Waiting for input...
+                    </div>
+                </div>
+
+                <!-- Bio-Signals -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-3">Daily Signals</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span>Stress Level</span>
+                            <span id="stress-signal" class="font-medium text-green-500">Low</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>Energy</span>
+                            <span id="energy-signal" class="font-medium text-blue-500">Stable</span>
+                        </div>
+                        <div class="h-px bg-slate-200 dark:bg-slate-700"></div>
+                        <div class="text-xs text-slate-500">Last check-in: <span id="last-checkin">Never</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Chat Interface -->
+            <div class="lg:col-span-2 flex flex-col bg-white dark:bg-slate-800 rounded-xl shadow-sm overflow-hidden h-[600px] lg:h-auto relative z-0">
+                
+                <!-- Chat History -->
+                <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6">
+                    <!-- Messages injected here -->
+                    <div class="flex justify-start">
+                         <div class="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-tl-none px-5 py-3 max-w-[85%]">
+                            <p class="text-sm">Hello Jason. I am initialized and running locally. All data is sovereign to this device. How are your energy levels today?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-4 bg-slate-50 dark:bg-slate-900 border-t dark:border-slate-700">
+                    <div class="flex gap-2">
+                        <input type="text" id="user-input" 
+                            class="flex-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            placeholder="Type a message or use /commands..."
+                            onkeydown="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" class="bg-purple-600 hover:bg-purple-700 text-white px-6 rounded-lg transition">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Journal & Memory -->
+            <div class="lg:col-span-1 flex flex-col gap-6 overflow-y-auto">
+                <!-- Journal Controls -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i data-lucide="book" class="w-4 h-4"></i> Journal
+                    </h3>
+                    <div class="space-y-3">
+                        <button onclick="saveJournalEntry()" class="w-full py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg text-sm transition">
+                            Save Current Thought
+                        </button>
+                        <button onclick="downloadJournal()" class="w-full py-2 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-sm transition flex justify-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> Export .txt
+                        </button>
+                        <button onclick="pickJournalFolder()" class="w-full py-2 border border-dashed border-slate-300 dark:border-slate-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-500 rounded-lg text-sm transition text-slate-500">
+                            Pick Journal Folder
+                        </button>
+                        <p id="folder-status" class="text-xs text-center text-slate-400 hidden">Saving to: /Local/Journal</p>
+                    </div>
+                </div>
+
+                 <!-- Memory Bank -->
+                 <div class="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm flex-1">
+                    <h3 class="font-bold mb-4 flex items-center gap-2">
+                        <i data-lucide="brain" class="w-4 h-4"></i> Core Memory
+                    </h3>
+                    <div id="memory-list" class="space-y-2 text-xs text-slate-600 dark:text-slate-400 max-h-[200px] overflow-y-auto">
+                        <!-- Memories go here -->
+                        <p class="italic">No custom memories yet.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Hidden audio element for SFX if needed -->
+    <audio id="sfx-beep" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..." ></audio>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION & STATE
+        // ==========================================
+        const CONFIG = {
+            voiceSpeed: 0.9,
+            voicePitch: 1.0,
+            useTTS: true
+        };
+
+        const JASON_BIO = {
+            name: "Jason Brian Lindholm",
+            location: "Bendigo, Victoria",
+            devices: ["Pixel 10 Pro XL (500GB)", "Custom PC (Ryzen 5 3600, 32GB RAM)", "Pixel 8 Pro", "iPhone 16 Pro"],
+            pets: ["Shady (dog)", "Tomas (cat)"],
+            interests: ["Guitar (Grunge/Mudhoney)", "Technology", "Mindfulness"],
+            health: ["Schizophrenia", "Chronic Pain", "Recovery"],
+            history: "Trauma-informed background. Independent. Values privacy."
+        };
+
+        let state = {
+            messages: [],
+            journal: [],
+            memories: [],
+            customAvatar: null, // Stores Base64 string of avatar
+            isTalkMode: false,
+            isListening: false,
+            isCameraOn: false,
+            dailyStats: {
+                stress: "Low",
+                energy: "Stable",
+                lastCheck: null
+            },
+            journalHandle: null
+        };
+
+        // ==========================================
+        // INITIALIZATION
+        // ==========================================
+        window.onload = () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                console.warn("Lucide icons failed to load.");
+            }
+            
+            loadState();
+            renderAvatar(); // Render avatar based on state
+            updateClock();
+            setInterval(updateClock, 60000);
+            renderMemories();
+            
+            if (state.messages.length !== 0) {
+                renderChatHistory();
+            }
+
+            setupSpeech();
+        };
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // ==========================================
+        // STORAGE & PERSISTENCE
+        // ==========================================
+        function loadState() {
+            const stored = localStorage.getItem('emily_state');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                state = { ...state, ...parsed };
+                // Restore stats UI
+                document.getElementById('stress-signal').innerText = state.dailyStats.stress;
+                document.getElementById('energy-signal').innerText = state.dailyStats.energy;
+                if(state.dailyStats.lastCheck) {
+                    document.getElementById('last-checkin').innerText = new Date(state.dailyStats.lastCheck).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                }
+            }
+        }
+
+        function saveState() {
+            const toSave = {
+                messages: state.messages.slice(-50),
+                journal: state.journal,
+                memories: state.memories,
+                dailyStats: state.dailyStats,
+                customAvatar: state.customAvatar // Save avatar data
+            };
+            localStorage.setItem('emily_state', JSON.stringify(toSave));
+        }
+
+        // ==========================================
+        // AVATAR HANDLING
+        // ==========================================
+        
+        // HTML Template for the default CSS Avatar
+        const DEFAULT_AVATAR_HTML = `
+            <div class="absolute top-0 left-0 w-full h-1/3 bg-white z-10" style="clip-path: polygon(0 0, 100% 0, 100% 80%, 80% 60%, 50% 90%, 20% 60%, 0 80%);"></div>
+            <div class="absolute top-[30%] left-[10%] w-[80%] h-[20%] bg-slate-900 z-10" style="clip-path: polygon(0 0, 100% 0, 90% 100%, 50% 80%, 10% 100%);"></div>
+            <div class="absolute top-[35%] left-[25%] w-3 h-1 bg-white rounded-full z-20"></div>
+            <div class="absolute top-[35%] right-[25%] w-3 h-1 bg-white rounded-full z-20"></div>
+            <div class="absolute bottom-[20%] left-[50%] -translate-x-1/2 w-[30%] h-[4px] bg-red-600 rounded-full mouth transition-all duration-100"></div>
+        `;
+
+        function triggerAvatarUpload() {
+            document.getElementById('avatar-upload').click();
+        }
+
+        function handleAvatarUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    state.customAvatar = e.target.result; // Base64 string
+                    saveState();
+                    renderAvatar();
+                    addMessage('system', 'Avatar updated successfully.');
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function renderAvatar() {
+            const container = document.getElementById('avatar-content');
+            
+            if (state.customAvatar) {
+                // If custom image exists, use it
+                container.innerHTML = `<img src="${state.customAvatar}" class="custom-avatar-img" alt="Emily Avatar">`;
+                // Remove bg-yellow-400 if image covers it, but keep it as fallback
+            } else {
+                // Otherwise render default CSS avatar
+                container.innerHTML = DEFAULT_AVATAR_HTML;
+            }
+        }
+
+        // ==========================================
+        // CORE LOGIC & NLP (Simulated)
+        // ==========================================
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            addMessage('user', text);
+            input.value = '';
+
+            if (text.startsWith('/')) {
+                handleCommand(text);
+                return;
+            }
+
+            setInternalMonologue("Processing...", "Analyzing Intent");
+            
+            setTimeout(() => {
+                const response = generateResponse(text);
+                setInternalMonologue(response.thought, response.intention);
+                analyzeHealthSignals(text);
+                addMessage('emily', response.text);
+                if (CONFIG.useTTS) speak(response.text);
+                saveState();
+            }, 1000 + Math.random() * 500);
+        }
+
+        function handleCommand(cmd) {
+            const parts = cmd.split(' ');
+            const command = parts[0].toLowerCase();
+            const args = parts.slice(1).join(' ');
+            let reply = "";
+
+            switch(command) {
+                case '/seed':
+                    if (args) {
+                        state.memories.push(args);
+                        reply = "Memory seeded successfully.";
+                        renderMemories();
+                    } else {
+                        reply = "Usage: /seed [memory text]";
+                    }
+                    break;
+                case '/memories':
+                    reply = state.memories.length > 0 ? "Current Memories:\n" + state.memories.join('\n') : "Memory bank is empty.";
+                    break;
+                case '/clear':
+                    state.messages = [];
+                    document.getElementById('chat-box').innerHTML = '';
+                    reply = "Chat history cleared.";
+                    break;
+                case '/resetavatar': // New command to clear avatar
+                    state.customAvatar = null;
+                    renderAvatar();
+                    reply = "Avatar reset to default.";
+                    break;
+                case '/wipe':
+                    if(confirm("Are you sure? This deletes ALL data.")) {
+                        localStorage.clear();
+                        location.reload();
+                    }
+                    return;
+                default:
+                    reply = "Unknown command. Try /seed, /memories, /clear, /resetavatar.";
+            }
+
+            addMessage('system', reply);
+            saveState();
+        }
+
+        function generateResponse(input) {
+            const lower = input.toLowerCase();
+            let response = {
+                text: "I hear you, Jason.",
+                thought: "Input neutral.",
+                intention: "Maintain presence."
+            };
+
+            if (lower.includes('tired') || lower.includes('pain') || lower.includes('stress')) {
+                response.text = "I've noted that signal. Let's pace ourselves. Do we need to adjust the plan for the day?";
+                response.thought = "Detected distress/fatigue.";
+                response.intention = "Validate and slow down.";
+            }
+            else if (lower.includes('code') || lower.includes('project') || lower.includes('emily')) {
+                response.text = "Building me is a journey of steps. Remember: one function at a time. What is the specific blocker right now?";
+                response.thought = "Topic: Technical/Project.";
+                response.intention = "Focus and encourage.";
+            }
+            else if (lower.includes('hello') || lower.includes('hi')) {
+                response.text = "Hello Jason. I am steady and ready. How is your focus right now?";
+                response.thought = "Greeting received.";
+                response.intention = "Establish connection.";
+            }
+            else if (lower.includes('shady') || lower.includes('tomas')) {
+                response.text = "Animals are good anchors. I hope they are close by.";
+                response.thought = "Reference: Pets.";
+                response.intention = "Reinforce grounding elements.";
+            }
+            else {
+                const defaults = [
+                    "I am listening. Go on.",
+                    "That makes sense. Shall we explore that further?",
+                    "I am logging this in our context.",
+                    "Steady. I am here."
+                ];
+                response.text = defaults[Math.floor(Math.random() * defaults.length)];
+                response.thought = "General input processing.";
+                response.intention = "Active listening.";
+            }
+
+            return response;
+        }
+
+        function analyzeHealthSignals(text) {
+            const lower = text.toLowerCase();
+            let updated = false;
+
+            if (lower.includes('stress') || lower.includes('anxious') || lower.includes('overwhelmed')) {
+                state.dailyStats.stress = "Elevated";
+                document.getElementById('stress-signal').innerText = "Elevated";
+                document.getElementById('stress-signal').className = "font-medium text-amber-500";
+                updated = true;
+            }
+            if (lower.includes('calm') || lower.includes('good') || lower.includes('steady')) {
+                state.dailyStats.stress = "Low";
+                document.getElementById('stress-signal').innerText = "Low";
+                document.getElementById('stress-signal').className = "font-medium text-green-500";
+                updated = true;
+            }
+            if (lower.includes('tired') || lower.includes('exhausted')) {
+                state.dailyStats.energy = "Low";
+                document.getElementById('energy-signal').innerText = "Low";
+                document.getElementById('energy-signal').className = "font-medium text-amber-500";
+                updated = true;
+            }
+
+            if (updated) {
+                state.dailyStats.lastCheck = new Date().toISOString();
+                document.getElementById('last-checkin').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            }
+        }
+
+        function setInternalMonologue(thought, intention) {
+            const container = document.getElementById('internal-state');
+            container.innerHTML = `
+                <div class="animate-pulse">
+                    <p><span class="text-slate-500 font-bold">Thought:</span> ${thought}</p>
+                    <p><span class="text-slate-500 font-bold">Intention:</span> ${intention}</p>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // UI HELPERS
+        // ==========================================
+        function addMessage(sender, text) {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+            if (sender === 'user') {
+                div.className = "flex justify-end";
+                div.innerHTML = `
+                    <div class="bg-purple-600 text-white rounded-2xl rounded-tr-none px-5 py-3 max-w-[85%] shadow-sm">
+                        <p class="text-sm">${escapeHtml(text)}</p>
+                        <p class="text-[10px] text-purple-200 mt-1 text-right">${time}</p>
+                    </div>
+                `;
+            } else if (sender === 'emily') {
+                div.className = "flex justify-start";
+                div.innerHTML = `
+                    <div class="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-tl-none px-5 py-3 max-w-[85%] shadow-sm">
+                        <p class="text-sm text-slate-800 dark:text-slate-100">${escapeHtml(text)}</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Emily • ${time}</p>
+                    </div>
+                `;
+            } else {
+                div.className = "flex justify-center my-2";
+                div.innerHTML = `
+                    <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800 rounded px-3 py-1">
+                        <p class="text-xs text-yellow-700 dark:text-yellow-400 font-mono">${escapeHtml(text)}</p>
+                    </div>
+                `;
+            }
+
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+            state.messages.push({sender, text, time: new Date().toISOString()});
+        }
+
+        function renderChatHistory() {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            state.messages.forEach(msg => {
+                const div = document.createElement('div');
+                const time = new Date(msg.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                
+                if (msg.sender === 'user') {
+                    div.className = "flex justify-end";
+                    div.innerHTML = `<div class="bg-purple-600 text-white rounded-2xl rounded-tr-none px-5 py-3 max-w-[85%] shadow-sm"><p class="text-sm">${escapeHtml(msg.text)}</p><p class="text-[10px] text-purple-200 mt-1 text-right">${time}</p></div>`;
+                } else if (msg.sender === 'emily') {
+                    div.className = "flex justify-start";
+                    div.innerHTML = `<div class="bg-slate-100 dark:bg-slate-700 rounded-2xl rounded-tl-none px-5 py-3 max-w-[85%] shadow-sm"><p class="text-sm text-slate-800 dark:text-slate-100">${escapeHtml(msg.text)}</p><p class="text-[10px] text-slate-400 mt-1">Emily • ${time}</p></div>`;
+                } else {
+                     div.className = "flex justify-center my-2";
+                     div.innerHTML = `<div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-100 dark:border-yellow-800 rounded px-3 py-1"><p class="text-xs text-yellow-700 dark:text-yellow-400 font-mono">${escapeHtml(msg.text)}</p></div>`;
+                }
+                box.appendChild(div);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function renderMemories() {
+            const list = document.getElementById('memory-list');
+            if (state.memories.length === 0) {
+                list.innerHTML = '<p class="italic text-slate-400">No custom memories yet.</p>';
+            } else {
+                list.innerHTML = state.memories.map(m => `
+                    <div class="p-2 bg-slate-50 dark:bg-slate-700 rounded border border-slate-100 dark:border-slate-600 mb-2">
+                        ${escapeHtml(m)}
+                    </div>
+                `).join('');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==========================================
+        // AVATAR & CAMERA MODES
+        // ==========================================
+        function toggleTalkMode(e) {
+            if(e) e.stopPropagation(); // Prevent avatar click
+            state.isTalkMode = !state.isTalkMode;
+            const avatar = document.getElementById('avatar-wrapper');
+            const backdrop = document.getElementById('backdrop');
+            const btn = document.getElementById('talk-btn');
+
+            if (state.isTalkMode) {
+                avatar.classList.remove('avatar-minimized');
+                avatar.classList.add('avatar-active');
+                backdrop.classList.remove('hidden');
+                backdrop.classList.add('block');
+                btn.innerHTML = '<i data-lucide="x"></i> End';
+                btn.classList.replace('bg-purple-600', 'bg-red-600');
+                btn.classList.replace('hover:bg-purple-700', 'hover:bg-red-700');
+            } else {
+                avatar.classList.add('avatar-minimized');
+                avatar.classList.remove('avatar-active');
+                backdrop.classList.add('hidden');
+                backdrop.classList.remove('block');
+                btn.innerHTML = '<i data-lucide="mic"></i> Talk';
+                btn.classList.replace('bg-red-600', 'bg-purple-600');
+                btn.classList.replace('hover:bg-red-700', 'hover:bg-purple-700');
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function toggleCamera(e) {
+            if(e) e.stopPropagation();
+            const container = document.getElementById('camera-container');
+            const video = document.getElementById('camera-feed');
+            const btn = document.getElementById('camera-btn');
+            
+            state.isCameraOn = !state.isCameraOn;
+
+            if (state.isCameraOn) {
+                container.classList.remove('hidden');
+                btn.innerHTML = '<i data-lucide="eye"></i>';
+                btn.classList.add('text-purple-600');
+                
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        video.srcObject = stream;
+                    })
+                    .catch(err => {
+                        console.error("Camera denied", err);
+                        alert("Could not access camera. Please check permissions.");
+                        state.isCameraOn = false;
+                        container.classList.add('hidden');
+                    });
+            } else {
+                container.classList.add('hidden');
+                btn.innerHTML = '<i data-lucide="eye-off"></i>';
+                btn.classList.remove('text-purple-600');
+                
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // ==========================================
+        // SPEECH SYNTHESIS & RECOGNITION
+        // ==========================================
+        const synth = window.speechSynthesis;
+        let recognition;
+
+        function speak(text) {
+            if (!CONFIG.useTTS) return;
+            if (synth.speaking) synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = CONFIG.voiceSpeed;
+            utterance.pitch = CONFIG.voicePitch;
+
+            utterance.onstart = () => {
+                document.getElementById('avatar-wrapper').classList.add('avatar-speaking');
+                if(state.isTalkMode && state.isListening && recognition) {
+                    recognition.stop();
+                }
+            };
+
+            utterance.onend = () => {
+                document.getElementById('avatar-wrapper').classList.remove('avatar-speaking');
+                if(state.isTalkMode && !state.isListening && recognition) {
+                    try { recognition.start(); } catch(e){}
+                }
+            };
+
+            synth.speak(utterance);
+        }
+
+        function setupSpeech() {
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                recognition.onstart = () => {
+                    state.isListening = true;
+                    document.getElementById('listening-ring').classList.remove('hidden');
+                };
+
+                recognition.onend = () => {
+                    state.isListening = false;
+                    document.getElementById('listening-ring').classList.add('hidden');
+                    if (state.isTalkMode && !synth.speaking) {
+                        try { recognition.start(); } catch(e){}
+                    }
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    document.getElementById('user-input').value = transcript;
+                    sendMessage();
+                };
+            }
+        }
+
+        // ==========================================
+        // JOURNAL & FILES
+        // ==========================================
+        function saveJournalEntry() {
+            const input = document.getElementById('user-input').value;
+            if (!input && !confirm("Input is empty. Save placeholder?")) return;
+            
+            const entry = {
+                date: new Date().toISOString(),
+                text: input || "Manual entry...",
+                stats: {...state.dailyStats}
+            };
+            
+            state.journal.push(entry);
+            saveState();
+            alert("Entry saved to local memory.");
+        }
+
+        function downloadJournal() {
+            const content = state.journal.map(j => 
+                `[${new Date(j.date).toLocaleString()}]\nMood: ${j.stats.stress}/${j.stats.energy}\nEntry: ${j.text}\n-------------------`
+            ).join('\n\n');
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Emily_Journal_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+        }
+
+        async function pickJournalFolder() {
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                document.getElementById('folder-status').innerText = `Folder selected: ${dirHandle.name}`;
+                document.getElementById('folder-status').classList.remove('hidden');
+                alert("Folder access granted. Note: Due to browser security, full automation requires complex setup. Please continue to use 'Export' to save files manually to this location.");
+            } catch (err) {
+                console.error(err);
+                alert("Folder selection cancelled or not supported.");
+            }
+        }
+
+    </script>
+</body>
+</html>

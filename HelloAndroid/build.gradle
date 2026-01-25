@@ -9,6 +9,12 @@ buildscript {
     }
 }
 
+ext {
+    coreKtxVersion = '1.13.1' // Update to latest stable if available
+    appCompatVersion = '1.7.0' // Update to latest stable if available
+    materialVersion = '1.12.0' // Update to latest stable if available
+}
+
 allprojects {
     repositories {
         google()
